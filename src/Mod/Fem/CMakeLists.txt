@@ -12,6 +12,7 @@ INSTALL(
         InitGui.py
 
         convert2TetGen.py
+        FemExample.py
 
         SelectionObserverFem.py
         TestFem.py
@@ -65,6 +66,17 @@ INSTALL(
         _FemSolverCalculix.py
         _ViewProviderFemSolverCalculix.py
         _CommandFemSolverCalculix.py
+
+	CaeAnalysis.py
+	CaeSolver.py
+	TaskPanelSolverControl.ui
+	CaeTools.py
+	FoamCfdSolver.py
+	ccxFemSolver.py
+	#FoamCaseWriter.py
+	CfdExample.py
+	_TaskPanelAnalysisControl.py
+	TaskPanelAnalysisControl.ui
 
     DESTINATION
         Mod/Fem

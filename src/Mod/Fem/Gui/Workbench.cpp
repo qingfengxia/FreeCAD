@@ -86,7 +86,6 @@ Gui::MenuItem* Workbench::setupMenuBar() const
     root->insertItem(item, fem);
     fem->setCommand("&FEM");
     *fem << "Fem_NewMechanicalAnalysis"
-         << "Fem_SolverCalculix"
          << "Fem_CreateFromShape"
          << "Fem_MechanicalMaterial"
          << "Fem_BeamSection"
@@ -101,7 +100,7 @@ Gui::MenuItem* Workbench::setupMenuBar() const
          << "Fem_ConstraintGear"   
          << "Fem_ConstraintPulley"
          << "Separator"
-         << "Fem_SolverJobControl"
+         << "Fem_MechanicalJobControl"
          << "Fem_Quick_Analysis"
          << "Fem_PurgeResults"
          << "Fem_ShowResult";
