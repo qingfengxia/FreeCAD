@@ -46,6 +46,7 @@
 #include "HypothesisPy.h"
 #include "FemConstraintBearing.h"
 #include "FemConstraintFixed.h"
+#include "FemConstraintSymmetry.h"
 #include "FemConstraintForce.h"
 #include "FemConstraintPressure.h"
 #include "FemConstraintGear.h"
@@ -135,6 +136,7 @@ void AppFemExport initFem()
     Fem::Constraint                 ::init();
     Fem::ConstraintBearing          ::init();
     Fem::ConstraintFixed            ::init();
+    Fem::ConstraintSymmetry         ::init();
     Fem::ConstraintForce            ::init();
     Fem::ConstraintPressure         ::init();
     Fem::ConstraintGear             ::init();

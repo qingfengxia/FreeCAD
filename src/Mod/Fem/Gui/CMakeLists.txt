@@ -47,7 +47,8 @@ set(FemGui_MOC_HDRS
     TaskDlgCreateNodeSet.h
     TaskFemConstraint.h
     TaskFemConstraintBearing.h
-    TaskFemConstraintFixed.h  
+    TaskFemConstraintFixed.h
+    TaskFemConstraintSymmetry.h
     TaskFemConstraintForce.h  
     TaskFemConstraintPressure.h
     TaskFemConstraintGear.h   
@@ -68,6 +69,7 @@ set(FemGui_UIC_SRCS
     TaskFemConstraint.ui
     TaskFemConstraintBearing.ui
     TaskFemConstraintFixed.ui
+    TaskFemConstraintSymmetry.ui
     TaskFemConstraintForce.ui
     TaskFemConstraintPressure.ui
     TaskTetParameter.ui
@@ -90,6 +92,9 @@ SET(FemGui_DLG_SRCS
     TaskFemConstraintFixed.ui
     TaskFemConstraintFixed.cpp
     TaskFemConstraintFixed.h
+    TaskFemConstraintSymmetry.ui
+    TaskFemConstraintSymmetry.cpp
+    TaskFemConstraintSymmetry.h
     TaskFemConstraintForce.ui
     TaskFemConstraintForce.cpp
     TaskFemConstraintForce.h
@@ -132,6 +137,8 @@ SET(FemGui_SRCS_ViewProvider
     ViewProviderFemConstraintBearing.h
     ViewProviderFemConstraintFixed.cpp
     ViewProviderFemConstraintFixed.h
+    ViewProviderFemConstraintSymmetry.cpp
+    ViewProviderFemConstraintSymmetry.h
     ViewProviderFemConstraintForce.cpp
     ViewProviderFemConstraintForce.h
     ViewProviderFemConstraintPressure.cpp

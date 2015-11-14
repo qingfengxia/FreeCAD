@@ -93,6 +93,7 @@ Gui::MenuItem* Workbench::setupMenuBar() const
          << "Fem_CreateNodesSet"
          << "Separator"
          << "Fem_ConstraintFixed"
+         << "Fem_ConstraintSymmetry"
          << "Fem_ConstraintForce"
          << "Fem_ConstraintPressure"
          << "Fem_ConstraintBearing"

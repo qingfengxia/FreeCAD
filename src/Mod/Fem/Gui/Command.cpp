@@ -283,6 +283,44 @@ bool CmdFemConstraintFixed::isActive(void)
 
 //=====================================================================================
 
+DEF_STD_CMD_A(CmdFemConstraintSymmetry);
+
+CmdFemConstraintSymmetry::CmdFemConstraintSymmetry()
+  : Command("Fem_ConstraintSymmetry")
+{
+    sAppModule      = "Fem";
+    sGroup          = QT_TR_NOOP("Fem");
+    sMenuText       = QT_TR_NOOP("Create FEM symmetry constraint");
+    sToolTipText    = QT_TR_NOOP("Create FEM constraint for a Symmetry geometric entity");
+    sWhatsThis      = "Fem_ConstraintSymmetry";
+    sStatusTip      = sToolTipText;
+    sPixmap         = "fem-constraint-symmetry";
+}
+
+void CmdFemConstraintSymmetry::activated(int iMsg)
+{
+    Fem::FemAnalysis        *Analysis;
+
+    if(getConstraintPrerequisits(&Analysis))
+        return;
+
+    std::string FeatName = getUniqueObjectName("FemConstraintSymmetry");
+
+    openCommand("Make FEM constraint symmetry geometry");
+    doCommand(Doc,"App.activeDocument().addObject(\"Fem::ConstraintSymmetry\",\"%s\")",FeatName.c_str());
+    doCommand(Doc,"App.activeDocument().%s.Member = App.activeDocument().%s.Member + [App.activeDocument().%s]",Analysis->getNameInDocument(),Analysis->getNameInDocument(),FeatName.c_str());
+    updateActive();
+
+    doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
+}
+
+bool CmdFemConstraintSymmetry::isActive(void)
+{
+    return FemGui::ActiveAnalysisObserver::instance()->hasActiveObject();
+}
+
+//=====================================================================================
+
 DEF_STD_CMD_A(CmdFemConstraintForce);
 
 CmdFemConstraintForce::CmdFemConstraintForce()
@@ -647,6 +685,7 @@ void CreateFemCommands(void)
     rcCmdMgr.addCommand(new CmdFemDefineNodesSet());
     rcCmdMgr.addCommand(new CmdFemConstraintBearing());
     rcCmdMgr.addCommand(new CmdFemConstraintFixed());
+    rcCmdMgr.addCommand(new CmdFemConstraintSymmetry());
     rcCmdMgr.addCommand(new CmdFemConstraintForce());
     rcCmdMgr.addCommand(new CmdFemConstraintPressure());
     rcCmdMgr.addCommand(new CmdFemConstraintGear());
