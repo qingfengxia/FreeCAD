@@ -62,14 +62,15 @@ def makeCaeSolver(solverName, analysis=None):
 
 def _createCaeSolver(solverInfo, analysis=None, solver_object=None):
     if FreeCAD.GuiUp:
-        if (analysis is not None) and analysis.isDerivedFrom("Fem::FemAnalysisObject"):
+        if (analysis is not None) and analysis.isDerivedFrom('Fem::FemAnalysisPython'):
             _analysis = analysis
         else:
             _analysis = FemGui.getActiveAnalysis()
     else:
-        if (analysis is not None) and  analysis.isDerivedFrom("Fem::FemAnalysisObject"):
+        if (analysis is not None) and analysis.isDerivedFrom('Fem::FemAnalysisPython'):
             _analysis = analysis
         else:
+            print type(analysis)
             raise Exception('Analysis obj is not the valid type of Fem::FemAnalysisObject')
 
     if solver_object is None:
@@ -83,8 +84,8 @@ def _createCaeSolver(solverInfo, analysis=None, solver_object=None):
     mod.CaeSolver(obj)
     if FreeCAD.GuiUp:
         mod.ViewProviderCaeSolver(obj.ViewObject)
+        
     _analysis.Member = _analysis.Member + [obj]
-
     _analysis.Category = solverInfo["Category"]
     _analysis.SolverName = solverInfo["SolverName"]
 
