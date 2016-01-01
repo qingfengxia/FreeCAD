@@ -47,7 +47,31 @@ class CaeSolver():
         self.Type = "CfdSolver"
         self.Object = obj  # keep a ref to the DocObj for nonGui usage
         obj.Proxy = self  # link between App::DocumentObject to  this object
-
+        
+        #some properties previously defined in FemSolver C++ object are moved here
+        if not "SolverName" in obj.PropertiesList:
+            obj.addProperty("App::PropertyString", "SolverName", "Solver",
+                            "unique solver name to identify the solver")
+            obj.addProperty("App::PropertyEnumeration", "Category", "Solver",
+                            "unique solver name to identify the solver")
+            obj.Category = ['CFD', 'FEM']
+            obj.addProperty("App::PropertyString", "Module", "Solver",
+                            "python module for case writer")            
+            obj.addProperty("App::PropertyString", "ExternalResultViewer", "Solver",
+                            "External Result Viewer's program name like paraview")
+            obj.addProperty("App::PropertyString", "ExternalCaseEditor", "Solver",
+                            "External Case Editor's program name like any text editor")
+            #the above the properties can be initialised in CaeAnalysis._makeCaeAnalysis()                
+            obj.addProperty("App::PropertyString", "WorkingDir", "Solver",
+                            "Solver process is run in this directory")
+            obj.addProperty("App::PropertyString", "InputCaseName", "Solver",
+                            "input file name without suffix or case folder name")
+            obj.addProperty("App::PropertyBool", "Parallel", "Solver",
+                            "solver is run with muliticore or on cluster")
+            obj.addProperty("App::PropertyBool", "ResultObtained", "Solver",
+                            "result of analysis has been obtained, i.e. case setup is fine")
+            obj.InputCaseName = 'TestCase'
+            obj.WorkingDir = './'
         # general CFD properties,  create if not existent
         if not "Compressible" in obj.PropertiesList:
             # API: addProperty(self,type,name='',group='',doc='',attr=0,readonly=False,hidden=False)
