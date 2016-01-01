@@ -68,18 +68,33 @@ INSTALL(
         _CommandFemSolverCalculix.py
 
 	CaeAnalysis.py
-	CaeSolver.py
+	#CaeSolver.py
 	TaskPanelSolverControl.ui
 	CaeTools.py
 	FoamCfdSolver.py
-	ccxFemSolver.py
-	#FoamCaseWriter.py
+	#ccxFemSolver.py
+	FoamCaseWriter.py
 	CfdExample.py
 	_TaskPanelAnalysisControl.py
 	TaskPanelAnalysisControl.ui
 
     DESTINATION
         Mod/Fem
+)
+
+INSTALL(
+    FILES
+	FoamCaseBuilder/BasicBuilder.py
+	FoamCaseBuilder/__init__.py
+	FoamCaseBuilder/utility.py
+	FoamCaseBuilder/simpleFoamTemplate_v2.zip
+	FoamCaseBuilder/simpleFoamTemplate_v3.zip
+	FoamCaseBuilder/Readme.md
+	FoamCaseBuilder/Readme_roadmap.md
+	FoamCaseBuilder/TestBuilder.py
+	FoamCaseBuilder/TestCase.unv
+    DESTINATION
+        Mod/Fem/FoamCaseBuilder
 )
 
 INSTALL(
