@@ -43,10 +43,6 @@ class _CommandFemFromShape(FemCommands):
     def Activated(self):
         FreeCAD.ActiveDocument.openTransaction("Create FEM mesh")
         FreeCADGui.addModule("FemGui")
-<<<<<<< HEAD
-=======
-        #FreeCADGui.addModule("MechanicalAnalysis")
->>>>>>> initial clean commit of adding CaeSolver and CaeAnalysis while _FemAnalysis etc are  deprecated but not deleted
         sel = FreeCADGui.Selection.getSelection()
         if (len(sel) == 1):
             if(sel[0].isDerivedFrom("Part::Feature")):
