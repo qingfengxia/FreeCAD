@@ -20,6 +20,11 @@
 # *                                                                         *
 # ***************************************************************************
 
+"""
+Mesh object can not update without click
+2D meshing is hard to converted to OpenFOAM, but possible to export UNV mesh
+"""
+
 import FreeCAD
 import os
 import sys
@@ -29,78 +34,25 @@ __title__ = "FoamCaseWriter"
 __author__ = "Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
+
 import FreeCAD
+if FreeCAD.GuiUp:
+    from PySide.QtGui import QApplication
+    from PySide.QtCore import Qt
 import os.path
-
-"""
-Mesh object can not update without click
-pyFoamClearCase.py
-SetField  BoxToFace BoundingBox  runApplication setFields
-"""
-
-#from pyfoam import
-from subprocess import Popen, PIPE, ProcessException
+import CaeTools
+import FoamCaseBuilder as fcb # function not depends on FreeCAD
 
 
-def launch_cmdline(cmdline):
-    process = Popen([].append(cmdline), stdout=PIPE, stderr=PIPE)
-    stdout, stderr = process.communicate()
-    exitCode = process.returncode
-
-    if (exitCode == 0):
-        print stdout
-    else:
-        print stdout
-        print stderr
-        raise ProcessException(cmdline, exitCode)
-
-
-def write_bc_faces(unv_mesh_file, bc_id, bc_objects):
-    FreeCAD.Console.PrintMessage('write face_set or patches for boundary\n')
-    f = unv_mesh_file
-    facet_list = []
-    for fobj in bc_objects:
-        bc_obj = fobj['Object']
-        for o, e in bc_obj.References:
-            elem = o.Shape.getElement(e)
-            if elem.ShapeType == 'Face':  # CFD study heeds only 2D face boundary for 3D model, normally
-                ret = mesh_object.FemMesh.getVolumesByFace(elem)
-                # return a list of tuple (vol->GetID(), face->GetID())
-                facet_list.append([i[1] for i in ret])
-    nr_facets = len(facet_list)
-    f.writeline("{:>10d}         0         0         0         0         0         0{:>10d}".format(bc_id,  nr_facets))
-    f.writeline(bc_objects.Name)
-    for i in int(nr_facets/2):
-        f.write("         8{:>10d}         0         0         ".format(facet_list[2*i].id))
-        f.writeline("         8{:>10d}         0         0         ".format(facet_list[2*i+1].id))
-    if nr_facets%2:
-        f.writeline("         8{:>10d}         0         0         ".format(facet_list[-1].id))
-
-def set_bc_velocity(bc):
-    """ignored in phase I"""
-    pass
-
-
-def set_bc_pressure(bc):
-    """rev = -1 if prs_obj.Reversed else 1 #inlet and outlet"""
-    pass
-
-
-def set_bc_temperature(bc):
-    """ignored in phase I"""
-    pass
-
-
-def write_bc_wall(bc):
-    pass
-
-
-def create_empty_case(zipped_template_file,output_path):
-    """copy or command to generate an empty case folder structure"""
-    import zipfile
-    with zipfile.ZipFile(zipped_template_file, "r") as z:
-        z.extractall(output_path)
-    # remove old case and mesh? auto replace without warning
+def convert_quantity_to_MKS(input, quantity_type, unit_system="MKS"):
+    """ convert non MKS unit quantity to SI MKS (metre, kg, second)
+    FreeCAD default length unit is mm, not metre, thereby, area is mm^2, pressure is MPa, etc
+    MKS (metre, kg, second) could be selected from "Edit->Preference", "General -> Units"
+    see:
+    mesh generated from FreeCAD nees to be scaled by 0.001
+    transformPoints -scale "(1e-3 1e-3 1e-3)"
+    """
+    return input
 
 
 def is_solid_mesh(fem_mesh):
@@ -108,7 +60,7 @@ def is_solid_mesh(fem_mesh):
         return True
 
 
-class SolverCaseWriter:
+class FoamCaseWriter:
     """write_case() is the only public API
     """
     def __init__(self, analysis_obj):
@@ -119,31 +71,65 @@ class SolverCaseWriter:
         self.solver_obj = CaeTools.getSolver(analysis_obj)
         self.mesh_obj = CaeTools.getMesh(analysis_obj)
         self.bc_group = CaeTools.getConstraintGroup(analysis_obj)
-        self.mesh_generatd = False
+        self.mesh_generated = False
+        
+        self.case_folder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
+        #solver_name = fcb.getSolverName(self.solver_obj)  # solver_name = 'simpleFoam' 
+        #template_path = fcb.getTemplate(solver_name)
+        self.mesh_file_name = self.case_folder + os.path.sep + self.solver_obj.InputCaseName + u".unv"
+        #solver_settings = {k:self.solver_object.property(), for k in self.solver_object.properties()}
+        self.builder = fcb.BasicBuilder(self.case_folder, self.mesh_file_name)
+        self.builder.setup()
 
-    def write_case(self):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+    def write_case(self, updating=False):
+        if FreeCAD.GuiUp:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
-            create_empty_case(FreeCAD.getHomePath() + "/Mod/Fem/icoFoam_case_template.zip", self.working_dir+os.path.sep+self.solver_obj.InputCaseName)
             self.write_mesh()
+            fcb.convertMesh(self.case_folder, self.mesh_file_name, True)
+            
             self.write_material()
             self.write_boundary_condition()
-            # solver control: time,
+            
             self.write_solver_control()
             self.write_time_control()
+
         finally:
-            QApplication.restoreOverrideCursor()
-        FreeCAD.Console.PrintMessage("Sucessfully write {} case to folder".format(self.solver_object.Name, self.working_dir))
+            if FreeCAD.GuiUp:
+                QApplication.restoreOverrideCursor()
+        FreeCAD.Console.PrintMessage("Sucessfully write {} case to folder".format(self.solver_object.Name, self.solver_obj.WorkingDir))
+
+
+    def write_bc_faces(self, unv_mesh_file, bc_id, bc_object):
+        FreeCAD.Console.PrintMessage('write face_set or patches for boundary\n')
+        f = unv_mesh_file
+        facet_list = []
+        for o, e in bc_object.References:
+            elem = o.Shape.getElement(e)
+            if elem.ShapeType == 'Face':  # OpenFOAM needs only 2D face boundary for 3D model, normally
+                ret = self.mesh_obj.FemMesh.getVolumesByFace(elem)
+                # return a list of tuple (vol->GetID(), face->GetID())
+                facet_list.extend([i[1] for i in ret])
+        nr_facets = len(facet_list)
+        #assert nr_facets > 0
+        f.write("{:>10d}         0         0         0         0         0         0{:>10d}\n".format(bc_id,  nr_facets))
+        f.writelines(bc_object.Label + "\n")
+        for i in range(int(nr_facets/2)):
+            f.write("         8{:>10d}         0         0         ".format(facet_list[2*i]))
+            f.write("         8{:>10d}         0         0         \n".format(facet_list[2*i+1]))
+        if nr_facets%2:
+            f.write("         8{:>10d}         0         0         \n".format(facet_list[-1]))
+
 
     def write_bc_mesh(self, unv_mesh_file):
         FreeCAD.Console.PrintMessage('write face_set or patches for boundary\n')
-        f=open(unv_mesh_file,'a')   # appending bc to the volume mesh, which contains node and element definition, ends with '-1' 
-        f.writeline("{:6d}".format(-1))  # start of a section 
-        f.writeline("{:6d}".format(2467))  # group section 
-        for bc_number, bc_obj in enumerate(self.bcgroup):
-            write_bc_faces(f, bc_number+1, bc_obj)
-        f.writeline("{:6d}".format(-1))  # end of a section 
-        f.writeline("{:6d}".format(-1))  # end of file
+        f = open(unv_mesh_file, 'a')   # appending bc to the volume mesh, which contains node and element definition, ends with '-1' 
+        f.write("{:6d}\n".format(-1))  # start of a section 
+        f.write("{:6d}\n".format(2467))  # group section 
+        for bc_number, bc_obj in enumerate(self.bc_group):
+            self.write_bc_faces(f, bc_number+1, bc_obj)
+        f.write("{:6d}\n".format(-1))  # end of a section 
+        f.write("{:6d}\n".format(-1))  # end of file
         f.close()
 
     def write_mesh(self, mesh_obj=None):
@@ -152,46 +138,66 @@ class SolverCaseWriter:
             mesh_obj = self.mesh_obj
         __objs__ = []
         __objs__.append(mesh_obj)
+        print mesh_obj.FemMesh  # debug
         import Fem
-        mesh_file_name = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.CaseInputFile + u".unv"
+        case_folder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
+        mesh_file_name = case_folder + os.path.sep + self.solver_obj.InputCaseName + u".unv"
+        print mesh_file_name  # debug info
         Fem.export(__objs__, mesh_file_name)
         del __objs__
 
         # repen this unv file and write the boundary faces
-        write_bc_mesh(self, mesh_file_name)
+        self.write_bc_mesh(mesh_file_name)
 
         # convert from UNV to OpenFoam
-        cmdline="ideasUnvToFoam -case {}  {}".format(self.solver_obj.WorkingDir, self.solver_obj.CaseInputFile + u".unv")
-        # icoFoam -case WorkingDir/case_file_name
-        launch_cmdline(cmdline)
-        FreeCAD.Console.PrintMessage('mesh file {} converted\n'.format(mesh_file_name))
-        self.mesh_generatd = True
+        caseFolder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
+        unvMeshFile = caseFolder + os.path.sep + self.solver_obj.InputCaseName + u".unv"
+        fcb.convertMesh(caseFolder, unvMeshFile)
+        
+        FreeCAD.Console.PrintMessage('mesh file {} converted and scaled\n'.format(mesh_file_name))
+        self.mesh_generated = True
+        return mesh_file_name
 
     def write_material(self, material=None):
-        """Air, Water, CustomedFluid, first step, default to Air"""
+        """Air, Water, CustomedFluid, first step, default to Water"""
         pass
 
     def write_boundary_condition(self, bcgroup):
         """switch case to deal diff boundary condition, mapping FEM constrain to CFD boundary conditon
-        thermal BC must be defined, heat flux and or fixed temperature
-        volume force / load? 
+        thermal BC heat flux and or fixed temperature, volume force / load, is not implemented yet
         """
+        caseFolder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
+        #turbulence_model setting up here, is object oriented builder better?
+        bc_settings = []
         for bc in bcgroup:
-            if bc.isDerivedFrom("Fem::FemConstraintPressure"):  # pressure inlet or outlet (revsered = True)
-                set_bc_pressure()
-            elif bc.isDerivedFrom("Fem::FemConstraintForce"):  # velocity
-                set_bc_velocity()
-            elif bc.isDerivedFrom("Fem::FemConstraintFixed"):  # wall
-                set_bc_wall()
+            if bc.isDerivedFrom("Fem::ConstraintPressure"):  # pressure inlet or outlet (Revsered = True)
+                if bc.Reversed == True:
+                    #FreeCAD pressure unit is MPa, while OpenFoam accept only Pa
+                    bc_settings.append({'name': bc.Label, "type": "outlet", "value_type": "pressureOutlet", "value": bc.Pressure*1e6})
+                else:
+                    bc_settings.append({'name': bc.Label, "type": "pressureInlet", "value_type": "totalPressure", "value": bc.Pressure*1e6})
+            elif bc.isDerivedFrom("Fem::ConstraintForce"):  # mapping force to fluid velocity inlet or outlet
+                if bc.Reversed == True:
+                   bc_settings.append({'name': bc.Label, "type": "outlet", "value_type": "outFlow", "value": bc.Force*1e3})
+                else:
+                     bc_settings.append({'name': bc.Label, "type": "velocityInlet", "value_type": "", "value": bc.Force*1e3})
+            elif bc.isDerivedFrom("Fem::ConstraintSymmetry"):  # plane symmetry to halve the computation time
+                bc_settings.append({'name': bc.Label, type: "symmetry"})
+            elif bc.isDerivedFrom("Fem::ConstraintFixed"):  # wall
+                bc_settings.append({'name': bc.Label, type: "wall"})
             else:
                 FreeCAD.Console.PrintMessage('boundary condition not supported yet\n')
         # non-group boundary surface should be wall, print a warning msg
+        self.builder.setBoundarySettings(bs)
 
     def write_solver_control(self):
-        """ 
+        """ relaxRatio, fvOptions. fvControl
         """
-        pass
+        caseFolder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
+        fcb.setRelaxationFactors(caseFolder, 0.25)  # set relaxationFactors to 0.25 for the coarse 3D mesh
 
     def write_time_control(self):
+        """ controlDict for time information
+        """
         if self.solver_obj.Transient == False:
             pass

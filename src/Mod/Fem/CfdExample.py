@@ -32,47 +32,51 @@ App.ActiveDocument.recompute()
 Gui.SendMsgToActiveView("ViewFit")
 Gui.activateWorkbench("FemWorkbench")
 #
-App.activeDocument().addObject('Fem::FemMeshShapeNetgenObject', 'Cylinder_Mesh')
+mesh_obj = App.activeDocument().addObject('Fem::FemMeshShapeNetgenObject', 'Cylinder_Mesh')
 App.activeDocument().ActiveObject.Shape = App.activeDocument().Cylinder
 Gui.activeDocument().setEdit(App.ActiveDocument.ActiveObject.Name)
 Gui.activeDocument().resetEdit()
 #
 import FemGui
 import CaeAnalysis
-import CaeSolver
-CaeAnalysis._makeCaeAnalysis("OpenFOAMAnalysis")
-FemGui.setActiveAnalysis(App.activeDocument().ActiveObject)
-CaeSolver.makeCaeSolver('OpenFOAM')
+analysis_obj = CaeAnalysis._CreateCaeAnalysis('OpenFOAM', 'OpenFOAMAnalysis')
+analysis_obj.Member = analysis_obj.Member  + [mesh_obj]
+
 #
 Gui.getDocument("Unnamed").getObject("Cylinder_Mesh").Visibility=False
 Gui.getDocument("Unnamed").getObject("Cylinder").Visibility=True
-#pressure inlet
+#
 import MechanicalMaterial
 MechanicalMaterial.makeMechanicalMaterial('MechanicalMaterial')
 App.activeDocument().OpenFOAMAnalysis.Member = App.activeDocument().OpenFOAMAnalysis.Member + [App.ActiveDocument.ActiveObject]
 Gui.activeDocument().setEdit(App.ActiveDocument.ActiveObject.Name,0)
-#
+#velocity inlet
+FemGui.setActiveAnalysis(App.activeDocument().OpenFOAMAnalysis)
+App.activeDocument().addObject("Fem::ConstraintForce","Inlet")
+App.activeDocument().OpenFOAMAnalysis.Member = App.activeDocument().OpenFOAMAnalysis.Member + [App.activeDocument().Inlet]
+App.ActiveDocument.Inlet.Force = 0.100000  # unit? 
+App.ActiveDocument.Inlet.Direction = None
+App.ActiveDocument.Inlet.Reversed = False
+App.ActiveDocument.Inlet.References = [(App.ActiveDocument.Cylinder,"Face3")]
+App.ActiveDocument.recompute()
+#pressure outlet
 App.activeDocument().addObject("Fem::ConstraintPressure","FemConstraintPressure")
 App.activeDocument().FemConstraintPressure.Pressure = 0.0
 App.activeDocument().OpenFOAMAnalysis.Member = App.activeDocument().OpenFOAMAnalysis.Member + [App.activeDocument().FemConstraintPressure]
 App.ActiveDocument.recompute()
 Gui.activeDocument().setEdit('FemConstraintPressure')
-App.ActiveDocument.FemConstraintPressure.Pressure = 0.010000
-App.ActiveDocument.FemConstraintPressure.Reversed = False
-App.ActiveDocument.FemConstraintPressure.References = [(App.ActiveDocument.Cylinder,"Face3")]
+App.ActiveDocument.FemConstraintPressure.Pressure = 0.000010
+App.ActiveDocument.FemConstraintPressure.Label = 'PressureOutlet'
+App.ActiveDocument.FemConstraintPressure.Reversed = True
+App.ActiveDocument.FemConstraintPressure.References = [(App.ActiveDocument.Cylinder,"Face2")]
 App.ActiveDocument.recompute()
 Gui.activeDocument().resetEdit()
-#pressure outlet
-App.activeDocument().addObject("Fem::ConstraintPressure","FemConstraintPressure001")
-App.activeDocument().FemConstraintPressure001.Pressure = 0.0
-App.activeDocument().OpenFOAMAnalysis.Member = App.activeDocument().OpenFOAMAnalysis.Member + [App.activeDocument().FemConstraintPressure001]
-App.ActiveDocument.recompute()
-Gui.activeDocument().setEdit('FemConstraintPressure001')
-App.ActiveDocument.FemConstraintPressure001.Pressure = 0.000010
-App.ActiveDocument.FemConstraintPressure001.Reversed = True
-App.ActiveDocument.FemConstraintPressure001.References = [(App.ActiveDocument.Cylinder,"Face2")]
-App.ActiveDocument.recompute()
-Gui.activeDocument().resetEdit()
+# analysis_obj  mesh_obj are present
+bc_obj = App.activeDocument().FemConstraintPressure
 #
-
-
+# must generate mesh in GUI dialog, or the mesh_obj is empty without cells
+# CFD mesh must NOT second-order, or optimized, so untick those checkboxes in GUI
+#
+import FoamCaseWriter
+writer = FoamCaseWriter.FoamCaseWriter(App.activeDocument().OpenFOAMAnalysis)
+writer.write_case()

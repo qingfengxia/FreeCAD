@@ -32,8 +32,9 @@ if FreeCAD.GuiUp:
     from PySide import QtCore, QtGui
 
 
-TurbulenceModelList = ["Laminar", "KE", "KW", "LES"]
-AnalysisTypeList = []
+from FoamCaseBuilder import supported_turbulence_models
+from FoamCaseBuilder import supported_multiphase_models
+#from FoamCaseBuilder import supported_radiation_models
 
 
 class CaeSolver():
@@ -47,21 +48,39 @@ class CaeSolver():
         self.Object = obj  # keep a ref to the DocObj for nonGui usage
         obj.Proxy = self  # link between App::DocumentObject to  this object
 
-        # general CFD properties, if there are not existant for newly create FemSolverObj, adProperty
+        # general CFD properties,  create if not existent
         if not "Compressible" in obj.PropertiesList:
             # API: addProperty(self,type,name='',group='',doc='',attr=0,readonly=False,hidden=False)
             obj.addProperty("App::PropertyEnumeration", "TurbulenceModel", "CFD",
-                            "Laminar,KE,KW,LES,")
-            obj.TurbulenceModel = TurbulenceModelList
+                            "Laminar,KE,KW,LES,etc")
+            obj.TurbulenceModel = list(supported_turbulence_models)
+            obj.addProperty("App::PropertyEnumeration", "MultiPhaseModel", "CFD",
+                            "Mixing, VoF, DiscreteParticleModel")
+            obj.MultiPhaseModel = list(supported_multiphase_models)
+            # DynanicMeshing, MultiPhaseModel, Combustion will not be implemented for model setup complexity
+            obj.addProperty("App::PropertyBool", "DynamicMeshing", "CFD",
+                            "mobile/moving meshing function", True)
             obj.addProperty("App::PropertyBool", "Compressible", "CFD",
-                            "Compressible air or Incompressible like liquid")
-            obj.addProperty("App::PropertyBool", "ThermalAnalysisEnabled", "CFD",
-                             "calc heat transfering")
-            obj.addProperty("App::PropertyBool", "Transient", "CFD",
-                            "static or transient analysis")
+                            "Compressible air or Incompressible like liquid, including temperature field", True)
+            obj.addProperty("App::PropertyBool", "Porous", "CFD",
+                            "Porous material model enabled or not", True)
+            obj.addProperty("App::PropertyBool", "Nonnewtonian", "CFD",
+                            "fluid property, strain-rate and stress constition, water and air are Newtonion", True)
+            #heat transfer group
+            obj.addProperty("App::PropertyBool", "HeatTransfering", "HeatTransfer",
+                             "calc temperature field, needed by compressible flow", True)
+            obj.addProperty("App::PropertyBool", "Buoyant", "HeatTransfer",
+                             "gravity induced flow, needed by compressible heat transfering analysis", True, True)
+            #obj.addProperty("App::PropertyEnumeration", "RadiationModel", "HeatTransfer",
+            #                 "radiation heat transfer model", True)
+            #obj.RadiationModel = list(supported_radiation_models)
+            obj.addProperty("App::PropertyBool", "Conjugate", "HeatTransfer",
+                             "MultiRegion fluid and solid conjugate heat transfering analysis", True)
             # CurrentTime TimeStep StartTime, StopTime
-
-            # adding solver specific properties
+            obj.addProperty("App::PropertyBool", "Transient", "Transient",
+                            "Static or transient analysis", True)
+            #MultiphysicalCoupling
+            # additional solver specific properties
         # FemSolverObject standard properties should be set in _SetSolverInfo() of CaeSolver.py
 
     ########## CaeSolver API #####################
@@ -73,20 +92,26 @@ class CaeSolver():
             import FemGui
             analysis_object = FemGui.getActiveAnalysis()
         import FoamCaseWriter
-        writer = FoamCaseWriter.FoamCaseWriter(analysis_object)
-        writer.write_mesh()
+        writer = FoamCaseWriter.CaseWriter(analysis_object)
+        writer.write_case()
 
 
     def generate_cmdline(self):
-        return "icoFoam -help"  # try to use abs path for case name file/folder
+        case_path = self.Object.WorkingDir + os.path.sep + self.Object.InputCaseName
+        import FoamCaseBuilder
+        solver_name = FoamCaseBuilder.getSolverName(self.Object)
+        return "{} -case {}".format(solver_name, case_path)
 
     def edit_case_externally(self):
         case_path = self.Object.WorkingDir + os.path.sep + self.Object.InputCaseName
         if FreeCAD.GuiUp:
             QtGui.QDesktopServices.openUrl(QtCore.QUrl(case_path))
+        else:
+            FreeCAD.PrintMessage("Please edit the case input files under {}".format(case_path))
 
     def view_result_externally(self):
-        return "paraFoam {}".format(self.Object.InputCaseName)
+        case_path = self.Object.WorkingDir + os.path.sep + self.Object.InputCaseName
+        return "paraFoam  -case {}".format(case_path)
 
     ############ standard FeutureT methods ##########
     def execute(self, obj):

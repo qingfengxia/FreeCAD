@@ -1,6 +1,6 @@
 #***************************************************************************
 #*                                                                         *
-#*   Copyright (c) 2015 - Qingfeng Xia @iesensor.com                 *
+#*   Copyright (c) 2015 - Qingfeng Xia @iesensor.com                       *
 #*                                                                         *
 #*   This program is free software; you can redistribute it and/or modify  *
 #*   it under the terms of the GNU Lesser General Public License (LGPL)    *
