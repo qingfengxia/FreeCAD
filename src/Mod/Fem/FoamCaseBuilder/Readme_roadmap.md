@@ -1,6 +1,6 @@
 ==================
-FoamCFDSolver
-===================
+#FoamCFDSolver
+==================
 
 ### Software prerequisits for Testing
 
@@ -20,9 +20,10 @@ see [OpenFoam quick startup guide]()
 ### Phase I demonstration 
 
 - CaeAnalysis: class should operate on diff category of solvers
-- CaseSolver: extending Fem::FemSolverObject
+- CaseSolver: extending Fem::FemSolverObject, factory pattern, create solver from name
 - FoamCaseWriter: OpenFOAM case writer, the key part is meshing and case setup
 - Fixed material as air or water
+- 3D UNV meshing writing function, FreeCAD mesh export does not write boundary elements
 - Use fem::constraint Constraint mapping: 
     Force->Velocity (Displacement is missing), 
     Pressure->Pressure, Symmetry is missing (Pulley), 
@@ -34,14 +35,14 @@ see [OpenFoam quick startup guide]()
 
 ### Phase II general usability
 
-- FluidMaterail: discussion with community for standardizing Material model, 
+- FluidMaterial: discussion with community for standardizing Material model, 
    also design for other CAE analysis EletroMagnetics
-- CFD boundary conditions
+- CFD boundary conditions toolbar buttons
 
-- More AnalysisType supported, 
+- More AnalysisType supported, transient, possible heat transfer simulation
    
 - CFD mesh with viscous layer and hex meshcell supported
-- Unsteady case support
+
 - SolverControlTaskPanel: better solver parameter control
 
 
