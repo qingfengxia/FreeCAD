@@ -1,21 +1,5 @@
-==================
-#FoamCFDSolver
-==================
 
-### Software prerequisits for Testing
-
-test on ubuntu 14.04
-
-OpenFoam 2.x can be installed from repo, which will install the correct Paraview
-
-Basically, I need several progam on PATH, like icoFoam, paraview, paraFoam
-Can be easily done by source a bash script in your .bashrc
-
-see [OpenFoam quick startup guide]()
-
-
-
-## CFD Roadmap
+## Foam CaseBuilder for FreeCAD Roadmap
 
 ### Phase I demonstration 
 
