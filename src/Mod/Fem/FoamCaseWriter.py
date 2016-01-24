@@ -93,12 +93,14 @@ class FoamCaseWriter:
             
             self.write_solver_control()
             self.write_time_control()
-
+            FreeCAD.Console.PrintMessage("{} Sucessfully write {} case to folder".format(self.solver_obj.SolverName, self.solver_obj.WorkingDir))
+        except e:
+            print(e)
+            return False
         finally:
             if FreeCAD.GuiUp:
                 QApplication.restoreOverrideCursor()
-        FreeCAD.Console.PrintMessage("Sucessfully write {} case to folder".format(self.solver_object.Name, self.solver_obj.WorkingDir))
-
+            return True
 
     def write_bc_faces(self, unv_mesh_file, bc_id, bc_object):
         FreeCAD.Console.PrintMessage('write face_set or patches for boundary\n')
@@ -162,25 +164,25 @@ class FoamCaseWriter:
         """Air, Water, CustomedFluid, first step, default to Water"""
         pass
 
-    def write_boundary_condition(self, bcgroup):
+    def write_boundary_condition(self):
         """switch case to deal diff boundary condition, mapping FEM constrain to CFD boundary conditon
         thermal BC heat flux and or fixed temperature, volume force / load, is not implemented yet
         """
         caseFolder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
         #turbulence_model setting up here, is object oriented builder better?
         bc_settings = []
-        for bc in bcgroup:
+        for bc in self.bc_group:
             if bc.isDerivedFrom("Fem::ConstraintPressure"):  # pressure inlet or outlet (Revsered = True)
                 if bc.Reversed == True:
                     #FreeCAD pressure unit is MPa, while OpenFoam accept only Pa
-                    bc_settings.append({'name': bc.Label, "type": "outlet", "value_type": "pressureOutlet", "value": bc.Pressure*1e6})
+                    bc_settings.append({'name': bc.Label, "type": "outlet", "valueType": "pressureOutlet", "value": bc.Pressure*1e6})
                 else:
-                    bc_settings.append({'name': bc.Label, "type": "pressureInlet", "value_type": "totalPressure", "value": bc.Pressure*1e6})
+                    bc_settings.append({'name': bc.Label, "type": "pressureInlet", "valueType": "totalPressure", "value": bc.Pressure*1e6})
             elif bc.isDerivedFrom("Fem::ConstraintForce"):  # mapping force to fluid velocity inlet or outlet
                 if bc.Reversed == True:
-                   bc_settings.append({'name': bc.Label, "type": "outlet", "value_type": "outFlow", "value": bc.Force*1e3})
+                    bc_settings.append({'name': bc.Label, "type": "outlet", "valueType": "outFlow", "value": 0.01})
                 else:
-                     bc_settings.append({'name': bc.Label, "type": "velocityInlet", "value_type": "", "value": bc.Force*1e3})
+                    bc_settings.append({'name': bc.Label, "type": "velocityInlet", "valueType": "fixedValue", "value": (0.1,0,0)})  # to-do
             elif bc.isDerivedFrom("Fem::ConstraintSymmetry"):  # plane symmetry to halve the computation time
                 bc_settings.append({'name': bc.Label, type: "symmetry"})
             elif bc.isDerivedFrom("Fem::ConstraintFixed"):  # wall
@@ -188,7 +190,7 @@ class FoamCaseWriter:
             else:
                 FreeCAD.Console.PrintMessage('boundary condition not supported yet\n')
         # non-group boundary surface should be wall, print a warning msg
-        self.builder.setBoundarySettings(bs)
+        self.builder.setBoundaryConditions(bc_settings)
 
     def write_solver_control(self):
         """ relaxRatio, fvOptions. fvControl
