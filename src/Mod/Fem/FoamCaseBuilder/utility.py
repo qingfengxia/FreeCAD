@@ -22,7 +22,7 @@
 
 
 """
-This script help setup OpenFOAM case as boundary conditions setup in Ansys Fluent
+This script help setup OpenFOAM case as boundary conditions setup in Ansys Fluent/CFX
 OpenFOAM for windows is available now: http://www.openfoam.com/products/openfoam-windows.php
 docker container in VirtualBox
 decomposePar should generate the boundary automatically

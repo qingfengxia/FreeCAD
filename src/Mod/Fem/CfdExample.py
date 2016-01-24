@@ -54,7 +54,7 @@ Gui.activeDocument().setEdit(App.ActiveDocument.ActiveObject.Name,0)
 FemGui.setActiveAnalysis(App.activeDocument().OpenFOAMAnalysis)
 App.activeDocument().addObject("Fem::ConstraintForce","Inlet")
 App.activeDocument().OpenFOAMAnalysis.Member = App.activeDocument().OpenFOAMAnalysis.Member + [App.activeDocument().Inlet]
-App.ActiveDocument.Inlet.Force = 0.100000  # unit? 
+App.ActiveDocument.Inlet.Force = 0.100000  # Mpa unit
 App.ActiveDocument.Inlet.Direction = None
 App.ActiveDocument.Inlet.Reversed = False
 App.ActiveDocument.Inlet.References = [(App.ActiveDocument.Cylinder,"Face3")]

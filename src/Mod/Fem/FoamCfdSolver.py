@@ -116,7 +116,7 @@ class CaeSolver():
             import FemGui
             analysis_object = FemGui.getActiveAnalysis()
         import FoamCaseWriter
-        writer = FoamCaseWriter.CaseWriter(analysis_object)
+        writer = FoamCaseWriter.FoamCaseWriter(analysis_object)
         writer.write_case()
 
 
