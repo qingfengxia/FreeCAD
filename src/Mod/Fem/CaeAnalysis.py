@@ -24,8 +24,14 @@ __title__ = "Command and Classes for New CAE Analysis"
 __author__ = "Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
+"""
+Changelog: CaeSolver.py is merged into this file, 
+FemAnalysis is still designed for Calculix only, therefore, CaeAnalysis is kept for 
+"""
+
 import FreeCAD
 from FemCommands import FemCommands
+from CaeSolver import makeCaeSolver
 
 if FreeCAD.GuiUp:
     import FreeCADGui
@@ -33,12 +39,13 @@ if FreeCAD.GuiUp:
     from PySide import QtCore
 
 
+"""
 def makeMechanicalAnalysis(name):
     '''makes a Fem MechAnalysis object'''
     obj =  _CreateCaeAnalysis('Calculix', name)
     obj.Type = "MechAnalysis"
     return obj
-
+"""
 
 def _makeCaeAnalysis(name):
     '''makeCaeAnalysis(name): makes a CAE Analysis object,
@@ -62,30 +69,6 @@ class CaeAnalysis:
         obj.Proxy = self  # link between App::DocumentObject to  this object
         obj.addProperty("App::PropertyString", "Category", "Analysis", "Cfd, Computional solid mechanics")
         obj.addProperty("App::PropertyString", "SolverName", "Analysis", "External solver unique name")
-
-        # added from Oct 30, 2015, these properties should be added into FemSolverPython object: ccxFemSolver,
-        # FemTools.py  _AnalysisControlTaskPanel.py  also need change.
-        from FemTools import FemTools
-        fem_prefs = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Fem")
-        obj.addProperty("App::PropertyEnumeration", "AnalysisType", "Fem", "Type of the analysis")
-        obj.AnalysisType = FemTools.known_analysis_types
-        analysis_type = fem_prefs.GetInt("AnalysisType", 0)
-        obj.AnalysisType = FemTools.known_analysis_types[analysis_type]
-        obj.addProperty("App::PropertyPath", "WorkingDir", "Fem", "Working directory for calculations")
-        obj.WorkingDir = fem_prefs.GetString("WorkingDir", "")
-
-        obj.addProperty("App::PropertyIntegerConstraint", "NumberOfEigenmodes", "Fem", "Number of modes for frequency calculations")
-        noe = fem_prefs.GetInt("NumberOfEigenmodes", 10)
-        obj.NumberOfEigenmodes = (noe, 1, 100, 1)
-
-        obj.addProperty("App::PropertyFloatConstraint", "EigenmodeLowLimit", "Fem", "Low frequency limit for eigenmode calculations")
-        #Not yet in prefs, so it will always default to 0.0
-        ell = fem_prefs.GetFloat("EigenmodeLowLimit", 0.0)
-        obj.EigenmodeLowLimit = (ell, 0.0, 1000000.0, 10000.0)
-
-        obj.addProperty("App::PropertyFloatConstraint", "EigenmodeHighLimit", "Fem", "High frequency limit for eigenmode calculations")
-        ehl = fem_prefs.GetFloat("EigenmodeHighLimit", 1000000.0)
-        obj.EigenmodeHighLimit = (ehl, 0.0, 1000000.0, 10000.0)
 
     # following are the FeutureT standard methods
     def execute(self, obj):
@@ -161,8 +144,7 @@ def _CreateCaeAnalysis(solverName, analysisName=None):
             obj = FreeCAD.activeDocument().ActiveObject
             FreeCADGui.doCommand("FemGui.setActiveAnalysis(App.activeDocument().ActiveObject)")
             # create an solver and append into analysisObject
-            FreeCADGui.addModule("CaeSolver")
-            FreeCADGui.doCommand("CaeSolver.makeCaeSolver('{}')".format(solverName))
+            FreeCADGui.doCommand("CaeAnalysis.makeCaeSolver('{}')".format(solverName))
             FreeCADGui.doCommand("FemGui.getActiveAnalysis().Member = FemGui.getActiveAnalysis().Member + [App.activeDocument().ActiveObject]")
             sel = FreeCADGui.Selection.getSelection()
             if (len(sel) == 1):
@@ -201,7 +183,7 @@ class _CommandNewCfdAnalysis(FemCommands):
     def Activated(self):
         _CreateCaeAnalysis('OpenFOAM')
 
-
+"""
 class _CommandNewMechAnalysis(FemCommands):
     "the Mechancial FEM Analysis command definition"
     def __init__(self):
@@ -215,7 +197,7 @@ class _CommandNewMechAnalysis(FemCommands):
     def Activated(self):
         _CreateCaeAnalysis('Calculix')
 
-
+"""
 class _CommandAnalysisControl(FemCommands):
     "the Fem Analysis Job Control command definition"
     def __init__(self):
@@ -235,5 +217,6 @@ class _CommandAnalysisControl(FemCommands):
 
 if FreeCAD.GuiUp:
     FreeCADGui.addCommand('Fem_NewCfdAnalysis', _CommandNewCfdAnalysis())
-    FreeCADGui.addCommand('Fem_NewMechAnalysis', _CommandNewMechAnalysis())
-    FreeCADGui.addCommand('Fem_AnalysisControl', _CommandAnalysisControl())
+    #FreeCADGui.addCommand('Fem_NewMechAnalysis', _CommandNewMechAnalysis())
+    #FreeCADGui.addCommand('Fem_AnalysisControl', _CommandAnalysisControl())
+
