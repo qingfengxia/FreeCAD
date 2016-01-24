@@ -175,13 +175,13 @@ class _TaskPanelAnalysisControl:
         'fills the widgets'
         if self.solver_object.SolverName == "Calculix":
             self.form.le_working_dir.setText(self.analysis_object.WorkingDir)  # need unification
+            # to-do: should use combobox instead
+            if self.analysis_object.AnalysisType == 'static':
+                self.form.rb_static_analysis.setChecked(True)
+            elif self.analysis_object.AnalysisType == 'frequency':
+                self.form.rb_frequency_analysis.setChecked(True)
         else:
             self.form.le_working_dir.setText(self.solver_object.WorkingDir)  # need unification
-        # to-do: should use combobox instead
-        if self.analysis_object.AnalysisType == 'static':
-            self.form.rb_static_analysis.setChecked(True)
-        elif self.analysis_object.AnalysisType == 'frequency':
-            self.form.rb_frequency_analysis.setChecked(True)
         return
 
     def accept(self):
@@ -230,7 +230,7 @@ class _TaskPanelAnalysisControl:
                         self.form.pb_edit_inp.setEnabled(True)
                         self.form.pb_run_solver.setEnabled(True)
                     else:
-                        self.femConsoleMessage("Write .inp file failed!", "#FF0000")
+                        self.femConsoleMessage("Write case setup file failed!", "#FF0000")
         finally:
             QApplication.restoreOverrideCursor()
 
