@@ -118,12 +118,12 @@ SET(FemScripts_SRCS
     TaskPanelShowDisplacement.ui
 
     CaeAnalysis.py
-    CaeSolver.py
+    #CaeSolver.py
     TaskPanelSolverControl.ui
     CaeTools.py
     FoamCfdSolver.py
-    ccxFemSolver.py
-    #FoamCaseWriter.py
+    #ccxFemSolver.py
+    FoamCaseWriter.py
     CfdExample.py
     _TaskPanelAnalysisControl.py
     TaskPanelAnalysisControl.ui
