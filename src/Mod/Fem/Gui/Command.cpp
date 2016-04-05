@@ -734,6 +734,7 @@ void CreateFemCommands(void)
     rcCmdMgr.addCommand(new CmdFemConstraintBearing());
     rcCmdMgr.addCommand(new CmdFemConstraintFixed());
     rcCmdMgr.addCommand(new CmdFemConstraintForce());
+    rcCmdMgr.addCommand(new CmdFemFluidBoundary());
     rcCmdMgr.addCommand(new CmdFemConstraintPressure());
     rcCmdMgr.addCommand(new CmdFemConstraintGear());
     rcCmdMgr.addCommand(new CmdFemConstraintPulley());
