@@ -50,6 +50,7 @@
 #include "FemConstraintPressure.h"
 #include "FemConstraintGear.h"
 #include "FemConstraintPulley.h"
+#include "FemFluidBoundary.h"
 
 #include "FemResultObject.h"
 #include "FemSolverObject.h"
@@ -138,6 +139,7 @@ PyMODINIT_FUNC initFem()
     Fem::ConstraintPressure         ::init();
     Fem::ConstraintGear             ::init();
     Fem::ConstraintPulley           ::init();
+    Fem::FluidBoundary              ::init();
 
     Fem::FemResultObject            ::init();
     Fem::FemResultObjectPython      ::init();
