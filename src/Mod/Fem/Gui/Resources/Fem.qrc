@@ -7,6 +7,7 @@
         <file>icons/fem-mech-analysis.svg</file>
         <file>icons/fem-solver.svg</file>
         <file>icons/fem-constraint-force.svg</file>
+	<file>icons/fem-fluid-boundary.svg</file>
         <file>icons/fem-constraint-fixed.svg</file>
         <file>icons/fem-constraint-pressure.svg</file>
         <file>icons/fem-constraint-bearing.svg</file>

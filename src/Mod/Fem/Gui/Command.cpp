@@ -367,6 +367,46 @@ bool CmdFemConstraintForce::isActive(void)
 
 //=====================================================================================
 
+DEF_STD_CMD_A(CmdFemFluidBoundary);
+
+CmdFemFluidBoundary::CmdFemFluidBoundary()
+  : Command("Fem_FluidBoundary")
+{
+    sAppModule      = "Fem";
+    sGroup          = QT_TR_NOOP("Fem");
+    sMenuText       = QT_TR_NOOP("Create fluid condition condition");
+    sToolTipText    = QT_TR_NOOP("Create fluid boundary condition on face entity");
+    sWhatsThis      = "Fem_FluidBoundary";
+    sStatusTip      = sToolTipText;
+    sPixmap         = "fem-fluid-boundary";
+}
+
+void CmdFemFluidBoundary::activated(int iMsg)
+{
+    Fem::FemAnalysis        *Analysis;
+
+    if(getConstraintPrerequisits(&Analysis))
+        return;
+
+    std::string FeatName = getUniqueObjectName("FluidBoundary");
+
+    openCommand("Create fluid boundary condition on face geometry");
+    doCommand(Doc,"App.activeDocument().addObject(\"Fem::FluidBoundary\",\"%s\")",FeatName.c_str());
+    //doCommand(Doc,"App.activeDocument().%s.BoundaryValue = 0.0",FeatName.c_str());
+    //BoundaryValue  is already the default value
+    doCommand(Doc,"App.activeDocument().%s.Member = App.activeDocument().%s.Member + [App.activeDocument().%s]",Analysis->getNameInDocument(),Analysis->getNameInDocument(),FeatName.c_str());
+    updateActive();
+
+    doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
+}
+
+bool CmdFemFluidBoundary::isActive(void)
+{
+    return FemGui::ActiveAnalysisObserver::instance()->hasActiveObject();
+}
+
+//=====================================================================================
+
 DEF_STD_CMD_A(CmdFemConstraintPressure);
 
 CmdFemConstraintPressure::CmdFemConstraintPressure()
