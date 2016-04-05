@@ -68,7 +68,7 @@ INSTALL(
         _CommandFemSolverCalculix.py
 
         CaeAnalysis.py
-        #CaeSolver.py
+        CaeSolver.py
         TaskPanelSolverControl.ui
         CaeTools.py
         FoamCfdSolver.py
