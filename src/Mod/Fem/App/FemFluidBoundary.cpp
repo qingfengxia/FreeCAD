@@ -43,11 +43,12 @@ using namespace Fem;
 PROPERTY_SOURCE(Fem::FluidBoundary, Fem::Constraint);
 
 const char* BoundaryTypes[] = {"inlet","wall","outlet","interface","freestream", NULL};
+//identical with TaskFemFluidBoundary
 const char* WallSubtypes[] = {"unspecific", "fixed",NULL};
-const char* InletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
-const char* OutletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
-const char* InterfaceSubtypes[] = {"symmetry","wedge","cyclic","empty", NULL};
-const char* FreestreamSubtypes[] = {"freestream",NULL};
+const char* InletSubtypes[] = {"unspecific","totalPressure","uniformVelocity","flowrate",NULL};
+const char* OutletSubtypes[] = {"unspecific","totalPressure","uniformVelocity","flowrate",NULL};
+const char* InterfaceSubtypes[] = {"unspecific","symmetry","wedge","cyclic","empty", NULL};
+const char* FreestreamSubtypes[] = {"unspecific", "freestream",NULL};
     
 FluidBoundary::FluidBoundary()
 {
@@ -69,6 +70,10 @@ FluidBoundary::FluidBoundary()
                       "Direction of arrows");
     naturalDirectionVector = Base::Vector3d(0,0,0); // by default use the null vector to indication an invalid value
     Points.setValues(std::vector<Base::Vector3d>());
+    // property from: FemConstraintFixed object
+    ADD_PROPERTY_TYPE(Normals,(Base::Vector3d()),"FluidBoundary",App::PropertyType(App::Prop_ReadOnly|App::Prop_Output),
+                      "Normals where symbols are drawn");
+    Normals.setValues(std::vector<Base::Vector3d>());
 }
 
 App::DocumentObjectExecReturn *FluidBoundary::execute(void)
@@ -116,7 +121,9 @@ void FluidBoundary::onChanged(const App::Property* prop)
         std::vector<Base::Vector3d> points;
         std::vector<Base::Vector3d> normals;
         if (getPoints(points, normals)) {
-            Points.setValues(points); // We don't use the normals because all arrows should have the same direction
+            Normals.setValues(normals); // normals are necessary for wall(constraint fixed) fluid boundary
+            Points.setValues(points);
+            //trigger redraw?
         }
     } else if (prop == &Direction) {
         Base::Vector3d direction = getDirection(Direction);
