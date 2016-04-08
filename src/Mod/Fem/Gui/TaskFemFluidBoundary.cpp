@@ -105,7 +105,6 @@ TaskFemFluidBoundary::TaskFemFluidBoundary(ViewProviderFemFluidBoundary *Constra
     // Get the feature data
     Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(ConstraintView->getObject());
     double f = pcConstraint->BoundaryValue.getValue();
-    Base::Console().Message("just before updateBoundaryTypeUI\n");
     
     ui->comboBoundaryType->blockSignals(true);
     std::vector<std::string> boundaryTypes = pcConstraint->BoundaryType.getEnumVector();
@@ -120,7 +119,6 @@ TaskFemFluidBoundary::TaskFemFluidBoundary(ViewProviderFemFluidBoundary *Constra
     
     updateBoundaryTypeUI();
     updateSubtypeUI();
-    //* Base::Console().Message("just after updateBoundaryTypeUI\n");
     
     std::vector<App::DocumentObject*> Objects = pcConstraint->References.getValues();
     std::vector<std::string> SubElements = pcConstraint->References.getSubValues();
@@ -154,10 +152,10 @@ TaskFemFluidBoundary::TaskFemFluidBoundary(ViewProviderFemFluidBoundary *Constra
 }
 
 const char* WallSubtypes[] = {"unspecific", "fixed",NULL};
-const char* InletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
-const char* OutletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
-const char* InterfaceSubtypes[] = {"symmetry","wedge","cyclic","empty", NULL};
-const char* FreestreamSubtypes[] = {"freestream",NULL};
+const char* InletSubtypes[] = {"unspecific","totalPressure","uniformVelocity","flowrate",NULL};
+const char* OutletSubtypes[] = {"unspecific","totalPressure","uniformVelocity","flowrate",NULL};
+const char* InterfaceSubtypes[] = {"unspecific","symmetry","wedge","cyclic","empty", NULL};
+const char* FreestreamSubtypes[] = {"unspecific","freestream",NULL};
 
 void TaskFemFluidBoundary::updateBoundaryTypeUI()
 {
@@ -180,7 +178,6 @@ void TaskFemFluidBoundary::updateBoundaryTypeUI()
     else if (boundaryType == "freestream")
     {
         ui->frameBoundaryValue->setVisible(false);
-
         pcConstraint->Subtype.setEnums(FreestreamSubtypes);
     }
     else if(boundaryType == "inlet")
@@ -203,11 +200,11 @@ void TaskFemFluidBoundary::updateBoundaryTypeUI()
         Base::Console().Message("Error boundaryType is not defined\n");
     }
     
-    Base::Console().Message("\n before set comboSubtype items\n");
+
     ui->comboSubtype->blockSignals(true);
     std::vector<std::string> subtypes = pcConstraint->Subtype.getEnumVector();
     std::string sSubtype = pcConstraint->Subtype.getValueAsString();
-    int iSubtype = 0;
+    int iSubtype = 1; // the first one is "unspecific" index 0
     ui->comboSubtype->clear();
     for (int it = 0; it < subtypes.size(); it++)
     {
@@ -233,8 +230,8 @@ void TaskFemFluidBoundary::updateSubtypeUI()
     {
         std::string subtype = Base::Tools::toStdString(ui->comboSubtype->currentText()); 
         
-        Base::Console().Message("\nsubtype property:");
-        Base::Console().Message(subtype.c_str());
+        //Base::Console().Message("\nsubtype property:");
+        //Base::Console().Message(subtype.c_str());
         if (subtype == "totalPressure")
         {
             ui->labelBoundaryValue->setText(QString::fromUtf8("pressure [Pa]")); //* tr()
@@ -249,7 +246,7 @@ void TaskFemFluidBoundary::updateSubtypeUI()
         }
         else
         {
-            ui->labelBoundaryValue->setText(QString::fromUtf8("userDefined"));
+            ui->labelBoundaryValue->setText(QString::fromUtf8("unspecific"));
         }
     }
     
