@@ -51,8 +51,8 @@ public:
     TaskFemFluidBoundary(ViewProviderFemFluidBoundary *ConstraintView,QWidget *parent = 0);
     virtual ~TaskFemFluidBoundary();
 
-    const char* getBoundaryType(void) const;
-    const char* getSubtype(void) const;
+    std::string getBoundaryType(void) const;
+    std::string getSubtype(void) const;
     double getBoundaryValue(void) const;
     virtual const std::string getReferences() const;
     const std::string getDirectionName(void) const;
@@ -60,8 +60,8 @@ public:
     bool getReverse(void) const;
 
 private Q_SLOTS:
-    void onBoundaryTypeChanged(const char*);
-    void onSubtypeChanged(const char*);
+    void onBoundaryTypeChanged(void);
+    void onSubtypeChanged(void);
     void onBoundaryValueChanged(double);
     void onReferenceDeleted(void);
     void onButtonDirection(const bool pressed = true);

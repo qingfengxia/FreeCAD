@@ -42,20 +42,24 @@ using namespace Fem;
 
 PROPERTY_SOURCE(Fem::FluidBoundary, Fem::Constraint);
 
+const char* BoundaryTypes[] = {"inlet","wall","outlet","interface","freestream", NULL};
+const char* WallSubtypes[] = {"unspecific", "fixed",NULL};
+const char* InletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
+const char* OutletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
+const char* InterfaceSubtypes[] = {"symmetry","wedge","cyclic","empty", NULL};
+const char* FreestreamSubtypes[] = {"freestream",NULL};
+    
 FluidBoundary::FluidBoundary()
 {
-    ADD_PROPERTY(BoundaryType,("wall"));
-    //ADD_PROPERTY(BoundaryType,("wall"),"FluidBoundary",(App::PropertyType)(App::Prop_None),
-    //                  "Basic boundary type like inlet, wall, outlet,etc");
-    const char* BoundaryTypes[] = {"wall","inlet","outlet","interface","freestream", NULL};
+    ADD_PROPERTY_TYPE(BoundaryType,(1),"FluidBoundary",(App::PropertyType)(App::Prop_None),
+                      "Basic boundary type like inlet, wall, outlet,etc");
     BoundaryType.setEnums(BoundaryTypes);
-    ADD_PROPERTY(Subtype,("fixed")); //,"FluidBoundary",(App::PropertyType)(App::Prop_None),
-                      //"Subtype defines value type or more specific type");
-    const char* WallSubtypes[] = {"fixed", NULL};
+    ADD_PROPERTY_TYPE(Subtype,(1),"FluidBoundary",(App::PropertyType)(App::Prop_None),
+                      "Subtype defines value type or more specific type");
     Subtype.setEnums(WallSubtypes);
     
-    ADD_PROPERTY(BoundaryValue,(0.0));//,"FluidBoundary",(App::PropertyType)(App::Prop_None),
-                      //"Scaler value for the specific value subtype, like pressure, velocity");
+    ADD_PROPERTY_TYPE(BoundaryValue,(0.0),"FluidBoundary",(App::PropertyType)(App::Prop_None),
+                      "Scaler value for the specific value subtype, like pressure, velocity");
     ADD_PROPERTY_TYPE(Direction,(0),"FluidBoundary",(App::PropertyType)(App::Prop_None),
                       "Element giving direction of constraint");
     ADD_PROPERTY(Reversed,(0));
@@ -77,6 +81,36 @@ void FluidBoundary::onChanged(const App::Property* prop)
     // Note: If we call this at the end, then the arrows are not oriented correctly initially
     // because the NormalDirection has not been calculated yet
     Constraint::onChanged(prop);
+    
+    if (prop == &BoundaryType)
+    {
+        std::string boundaryType = BoundaryType.getValueAsString();
+        if (boundaryType == "wall")
+        {
+            Subtype.setEnums(WallSubtypes);
+        }
+        else if (boundaryType == "interface")
+        {
+            Subtype.setEnums(InterfaceSubtypes);
+        }
+        else if (boundaryType == "freestream")
+        {
+            Subtype.setEnums(FreestreamSubtypes);
+        }
+        else if(boundaryType == "inlet")
+        {
+            Subtype.setEnums(InletSubtypes);
+        }
+        else if(boundaryType == "outlet")
+        {
+            Subtype.setEnums(OutletSubtypes);
+        }
+        else
+        {
+            Base::Console().Message(boundaryType.c_str());
+            Base::Console().Message(" Error: this boundaryType is not defined\n");
+        }
+    }
 
     if (prop == &References) {
         std::vector<Base::Vector3d> points;

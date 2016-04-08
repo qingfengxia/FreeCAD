@@ -56,6 +56,7 @@
 #include <Mod/Part/App/PartFeature.h>
 
 #include <Base/Console.h>
+#include <Base/Tools.h>
 
 using namespace FemGui;
 using namespace Gui;
@@ -78,10 +79,10 @@ TaskFemFluidBoundary::TaskFemFluidBoundary(ViewProviderFemFluidBoundary *Constra
     ui->listReferences->addAction(action);
     ui->listReferences->setContextMenuPolicy(Qt::ActionsContextMenu);
 
-    connect(ui->comboBoundaryType, SIGNAL(valueChanged(double)),
-            this, SLOT(onBoundaryTypeChanged(double)));
-    connect(ui->comboSubtype, SIGNAL(valueChanged(double)),
-            this, SLOT(onSubtypeChanged(double)));
+    connect(ui->comboBoundaryType, SIGNAL(currentIndexChanged(int)),
+            this, SLOT(onBoundaryTypeChanged(void)));
+    connect(ui->comboSubtype, SIGNAL(currentIndexChanged(int)),
+            this, SLOT(onSubtypeChanged(void)));
     connect(ui->spinBoundaryValue, SIGNAL(valueChanged(double)),
             this, SLOT(onBoundaryValueChanged(double)));
     connect(ui->buttonReference, SIGNAL(pressed()),
@@ -104,8 +105,22 @@ TaskFemFluidBoundary::TaskFemFluidBoundary(ViewProviderFemFluidBoundary *Constra
     // Get the feature data
     Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(ConstraintView->getObject());
     double f = pcConstraint->BoundaryValue.getValue();
+    Base::Console().Message("just before updateBoundaryTypeUI\n");
+    
+    ui->comboBoundaryType->blockSignals(true);
+    std::vector<std::string> boundaryTypes = pcConstraint->BoundaryType.getEnumVector();
+    ui->comboBoundaryType->clear();
+    for (int it = 0; it < boundaryTypes.size(); it++)
+    {
+        //Base::Console().Message(boundaryTypes[it].c_str());
+        ui->comboBoundaryType->insertItem(it, Base::Tools::fromStdString(boundaryTypes[it]));
+    }
+    ui->comboBoundaryType->blockSignals(false);
+    ui->comboBoundaryType->setCurrentIndex(pcConstraint->BoundaryType.getValue());
+    
     updateBoundaryTypeUI();
     updateSubtypeUI();
+    //* Base::Console().Message("just after updateBoundaryTypeUI\n");
     
     std::vector<App::DocumentObject*> Objects = pcConstraint->References.getValues();
     std::vector<std::string> SubElements = pcConstraint->References.getSubValues();
@@ -125,7 +140,8 @@ TaskFemFluidBoundary::TaskFemFluidBoundary(ViewProviderFemFluidBoundary *Constra
     if (Objects.size() > 0)
         ui->listReferences->setCurrentRow(0, QItemSelectionModel::ClearAndSelect);
     ui->lineDirection->setText(dir.isEmpty() ? tr("") : dir);
-    ui->checkReverse->setChecked(reversed);
+    //ui->checkReverse->setChecked(reversed);
+    ui->checkReverse->setVisible(false); // no need such UI for fluid boundary
 
     ui->listReferences->blockSignals(false);
     ui->buttonReference->blockSignals(false);
@@ -137,45 +153,88 @@ TaskFemFluidBoundary::TaskFemFluidBoundary(ViewProviderFemFluidBoundary *Constra
     updateSelectionUI();
 }
 
+const char* WallSubtypes[] = {"unspecific", "fixed",NULL};
+const char* InletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
+const char* OutletSubtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
+const char* InterfaceSubtypes[] = {"symmetry","wedge","cyclic","empty", NULL};
+const char* FreestreamSubtypes[] = {"freestream",NULL};
+
 void TaskFemFluidBoundary::updateBoundaryTypeUI()
 {
-    ui->comboBoundaryType->blockSignals(true);
-    
+        
     Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(ConstraintView->getObject());
     std::string boundaryType = pcConstraint->BoundaryType.getValueAsString();
-    std::vector<std::string> boundaryTypes = pcConstraint->BoundaryType.getEnumVector();
-    for (int it = 0; it < boundaryTypes.size(); it++)
-    {
-        ui->comboBoundaryType->insertItem(it, QString::fromUtf8(boundaryTypes[it].c_str()));
-    }
-    ui->comboBoundaryType->setCurrentIndex(pcConstraint->BoundaryType.getValue());
     
-    //update subtypes, any change here should be written back to FemFluidBoundary.cpp
+    // Update subtypes, any change here should be written back to FemFluidBoundary.cpp
     if (boundaryType == "wall") 
     {
         ui->frameBoundaryValue->setVisible(false);
-        const char* subtypes[] = {"fixed",NULL};
-        pcConstraint->BoundaryType.setEnums(subtypes);
+
+        pcConstraint->Subtype.setEnums(WallSubtypes);
     }
     else if (boundaryType == "interface")
     {
         ui->frameBoundaryValue->setVisible(false);
-        const char* subtypes[] = {"symmetry","wedge","cyclic","empty", NULL};
-        pcConstraint->BoundaryType.setEnums(subtypes);
+        pcConstraint->Subtype.setEnums(InterfaceSubtypes);
     }
     else if (boundaryType == "freestream")
     {
         ui->frameBoundaryValue->setVisible(false);
-        const char* subtypes[] = {"freestream",NULL};
-        pcConstraint->BoundaryType.setEnums(subtypes);
+
+        pcConstraint->Subtype.setEnums(FreestreamSubtypes);
     }
-    else if(boundaryType == "inlet" || boundaryType == "outlet")
+    else if(boundaryType == "inlet")
     {
         ui->frameBoundaryValue->setVisible(true);
         ui->labelSubtype->setText(QString::fromUtf8("valueType"));
-        const char* subtypes[] = {"totalPressure","uniformVelocity","flowrate","userDefined",NULL};
-        pcConstraint->BoundaryType.setEnums(subtypes);
-        std::string subtype = pcConstraint->Subtype.getValueAsString();
+        pcConstraint->Subtype.setEnums(InletSubtypes);
+        pcConstraint->Reversed.setValue(true); // inlet must point into volume
+    }
+    else if(boundaryType == "outlet")
+    {
+        ui->frameBoundaryValue->setVisible(true);
+        ui->labelSubtype->setText(QString::fromUtf8("valueType"));
+        pcConstraint->Subtype.setEnums(OutletSubtypes);
+        pcConstraint->Reversed.setValue(false); // inlet must point outside
+    }
+    else
+    {
+        Base::Console().Message(boundaryType.c_str());
+        Base::Console().Message("Error boundaryType is not defined\n");
+    }
+    
+    Base::Console().Message("\n before set comboSubtype items\n");
+    ui->comboSubtype->blockSignals(true);
+    std::vector<std::string> subtypes = pcConstraint->Subtype.getEnumVector();
+    std::string sSubtype = pcConstraint->Subtype.getValueAsString();
+    int iSubtype = 0;
+    ui->comboSubtype->clear();
+    for (int it = 0; it < subtypes.size(); it++)
+    {
+        ui->comboSubtype->insertItem(it, Base::Tools::fromStdString(subtypes[it]));
+        if (sSubtype == subtypes[it])
+        {
+            iSubtype = it;
+        }
+    }
+    ui->comboSubtype->blockSignals(false);
+    ui->comboSubtype->setCurrentIndex(iSubtype);
+
+}
+
+void TaskFemFluidBoundary::updateSubtypeUI()
+{
+
+    Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(ConstraintView->getObject());
+    //* Subtype PropertyEnumeration is updated if BoundaryType is changed
+    std::string boundaryType = pcConstraint->BoundaryType.getValueAsString(); 
+    
+    if(boundaryType == "inlet" || boundaryType == "outlet")
+    {
+        std::string subtype = Base::Tools::toStdString(ui->comboSubtype->currentText()); 
+        
+        Base::Console().Message("\nsubtype property:");
+        Base::Console().Message(subtype.c_str());
         if (subtype == "totalPressure")
         {
             ui->labelBoundaryValue->setText(QString::fromUtf8("pressure [Pa]")); //* tr()
@@ -193,35 +252,7 @@ void TaskFemFluidBoundary::updateBoundaryTypeUI()
             ui->labelBoundaryValue->setText(QString::fromUtf8("userDefined"));
         }
     }
-    else
-    {
-        throw; //should not get here! boundaryType is not defined
-    }
-
-    ui->comboBoundaryType->blockSignals(false);
     
-}
-
-void TaskFemFluidBoundary::updateSubtypeUI()
-{
-    ui->comboSubtype->blockSignals(true);
-    
-    Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(ConstraintView->getObject());
-    //Subtype PropertyEnumeration is updated if BoundaryType is changed
-    std::string sSubtype = pcConstraint->Subtype.getValueAsString();
-    std::vector<std::string> subtypes = pcConstraint->Subtype.getEnumVector();
-    int iSubtype = 0;
-    for (int it = 0; it < subtypes.size(); it++)
-    {
-        ui->comboSubtype->insertItem(it, QString::fromUtf8(subtypes[it].c_str()));
-        if (sSubtype == subtypes[it])
-        {
-            iSubtype = it;
-        }
-    }
-    ui->comboSubtype->setCurrentIndex(iSubtype);
-    
-    ui->comboSubtype->blockSignals(false);
 }
 
 void TaskFemFluidBoundary::updateSelectionUI()
@@ -263,7 +294,7 @@ void TaskFemFluidBoundary::onSelectionChanged(const Gui::SelectionChanges& msg)
         App::DocumentObject* obj = ConstraintView->getObject()->getDocument()->getObject(msg.pObjectName);
         Part::Feature* feat = static_cast<Part::Feature*>(obj);
         TopoDS_Shape ref = feat->Shape.getShape().getSubShape(subName.c_str());
-
+        //* string conversion:  <Base/Tools.h> toStdString()/fromStdString()
         if (selectionMode == selref) {
             std::vector<App::DocumentObject*> Objects = pcConstraint->References.getValues();
             std::vector<std::string> SubElements = pcConstraint->References.getSubValues();
@@ -334,17 +365,17 @@ void TaskFemFluidBoundary::onSelectionChanged(const Gui::SelectionChanges& msg)
     }
 }
 
-void TaskFemFluidBoundary::onBoundaryTypeChanged(const char* boundaryType)
+void TaskFemFluidBoundary::onBoundaryTypeChanged(void)
 {
     Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(ConstraintView->getObject());
-    pcConstraint->BoundaryType.setValue(boundaryType);
+    pcConstraint->BoundaryType.setValue(ui->comboBoundaryType->currentIndex());   
     updateBoundaryTypeUI();
 }
 
-void TaskFemFluidBoundary::onSubtypeChanged(const char* subtype)
+void TaskFemFluidBoundary::onSubtypeChanged(void)
 {
     Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(ConstraintView->getObject());
-    pcConstraint->Subtype.setValue(subtype);
+    pcConstraint->Subtype.setValue(ui->comboSubtype->currentIndex());
     updateSubtypeUI();
 }
 
@@ -377,14 +408,14 @@ void TaskFemFluidBoundary::onCheckReverse(const bool pressed)
     pcConstraint->Reversed.setValue(pressed);
 }
 
-const char* TaskFemFluidBoundary::getBoundaryType(void) const
+std::string TaskFemFluidBoundary::getBoundaryType(void) const
 {
-    return ui->comboBoundaryType->currentText().toStdString().c_str();
+    return Base::Tools::toStdString(ui->comboBoundaryType->currentText());
 }
 
-const char* TaskFemFluidBoundary::getSubtype(void) const
+std::string TaskFemFluidBoundary::getSubtype(void) const
 {
-    return ui->comboSubtype->currentText().toStdString().c_str();
+    return Base::Tools::toStdString(ui->comboSubtype->currentText());
 }
 
 double TaskFemFluidBoundary::getBoundaryValue(void) const
@@ -476,8 +507,8 @@ bool TaskDlgFemFluidBoundary::accept()
 
     try {
         //Gui::Command::openCommand("Fluid boundary condition changed");
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.BoundaryType = %s",name.c_str(), boundary->getBoundaryType());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Subtype = %s",name.c_str(), boundary->getSubtype());
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.BoundaryType = '%s'",name.c_str(), boundary->getBoundaryType().c_str());
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Subtype = '%s'",name.c_str(), boundary->getSubtype().c_str());
         Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.BoundaryValue = %f",name.c_str(), boundary->getBoundaryValue());
         
         std::string dirname = boundary->getDirectionName().data();
@@ -491,8 +522,8 @@ bool TaskDlgFemFluidBoundary::accept()
         } else {
             Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Direction = None", name.c_str());
         }
-
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %s", name.c_str(), boundary->getReverse() ? "True" : "False");
+        //Reverse controll is done at BoundaryType selection, this UI is hiden from user
+        //Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %s", name.c_str(), boundary->getReverse() ? "True" : "False");
     }
     catch (const Base::Exception& e) {
         QMessageBox::warning(parameter, tr("Input error"), QString::fromLatin1(e.what()));
