@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (c) 2013 Jan Rheinländer <jrheinlaender@users.sourceforge.net>        *
+ *   Copyright (c) 2016 Qingfeng Xia <qingfeng.xia    iesensor.com>        *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -24,6 +24,7 @@
 #ifndef GUI_TASKVIEW_TaskFemFluidBoundary_H
 #define GUI_TASKVIEW_TaskFemFluidBoundary_H
 
+#include <App/PropertyStandard.h>
 #include <Gui/TaskView/TaskView.h>
 #include <Gui/Selection.h>
 #include <Gui/TaskView/TaskDialog.h>
@@ -54,6 +55,18 @@ public:
     std::string getBoundaryType(void) const;
     std::string getSubtype(void) const;
     double getBoundaryValue(void) const;
+    
+    std::string getTurbulenceModel(void) const;
+    std::string getTurbulenceSpecification(void) const;
+    double getTurbulentIntensityValue(void) const;
+    double getTurbulentLengthValue(void) const;
+    
+    bool getHeatTransfering(void) const;
+    std::string getThermalBoundaryType(void) const;
+    double getTemperatureValue(void) const;
+    double getHeatFluxValue(void) const;
+    double getHTCoeffValue(void) const;
+    
     virtual const std::string getReferences() const;
     const std::string getDirectionName(void) const;
     const std::string getDirectionObject(void) const;
@@ -62,7 +75,8 @@ public:
 private Q_SLOTS:
     void onBoundaryTypeChanged(void);
     void onSubtypeChanged(void);
-    void onBoundaryValueChanged(double);
+    void onTurbulenceSpecificationChanged(void);
+    void onThermalBoundaryTypeChanged(void);
     void onReferenceDeleted(void);
     void onButtonDirection(const bool pressed = true);
     void onCheckReverse(bool);
@@ -75,9 +89,13 @@ private:
     void updateSelectionUI();
     void updateBoundaryTypeUI();
     void updateSubtypeUI();
+    void updateThermalBoundaryUI();
+    void updateTurbulenceUI();
 
 private:
     Ui_TaskFemFluidBoundary* ui;
+    App::PropertyBool* pHeatTransfering;
+    App::PropertyEnumeration* pTurbulenceModel;
 };
 
 /// simulation dialog for the TaskView
