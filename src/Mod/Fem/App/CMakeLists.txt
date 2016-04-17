@@ -118,15 +118,18 @@ SET(FemScripts_SRCS
     TaskPanelShowDisplacement.ui
 
     CaeAnalysis.py
-    #CaeSolver.py
-    TaskPanelSolverControl.ui
     CaeTools.py
+    CaeSolver.py
+    TaskPanelSolverControl.ui
+    #_TaskPanelSolverControl.py
     FoamCfdSolver.py
-    #ccxFemSolver.py
     FoamCaseWriter.py
     CfdExample.py
     _TaskPanelAnalysisControl.py
     TaskPanelAnalysisControl.ui
+    FemMaterial.py
+    _TaskPanelFemMaterial.py
+    TaskPanelFemMaterial.ui
 )
 #SOURCE_GROUP("Scripts" FILES ${FemScripts_SRCS})
 
@@ -189,14 +192,14 @@ SET(FemConstraints_SRCS
     FemConstraintFixed.h
     FemConstraintForce.cpp
     FemConstraintForce.h
-    FemFluidBoundary.cpp
-    FemFluidBoundary.h
     FemConstraintPressure.cpp
     FemConstraintPressure.h
     FemConstraintGear.cpp
     FemConstraintGear.h
     FemConstraintPulley.cpp
     FemConstraintPulley.h
+    FemFluidBoundary.cpp
+    FemFluidBoundary.h
 	)
 SOURCE_GROUP("Constraints" FILES ${FemConstraints_SRCS})
 

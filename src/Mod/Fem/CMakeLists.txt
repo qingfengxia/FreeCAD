@@ -68,15 +68,18 @@ INSTALL(
         _CommandFemSolverCalculix.py
 
         CaeAnalysis.py
+        CaeTools.py
         CaeSolver.py
         TaskPanelSolverControl.ui
-        CaeTools.py
+        #_TaskPanelSolverControl.py
         FoamCfdSolver.py
-        #ccxFemSolver.py
         FoamCaseWriter.py
         CfdExample.py
         _TaskPanelAnalysisControl.py
         TaskPanelAnalysisControl.ui
+        FemMaterial.py
+        _TaskPanelFemMaterial.py
+        TaskPanelFemMaterial.ui
 
     DESTINATION
         Mod/Fem
