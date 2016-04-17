@@ -24,6 +24,7 @@ from PyFoam.ThirdParty.six import print_
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
 
 from utility import *
+_debug = True
 
 """groups of turbulence models into: laminar, RAS, LES (including DES), DNS
 not all RAS/LES models are list, see more at http://www.openfoam.org/features/LES.php
@@ -37,14 +38,14 @@ LES_turbulence_models = set(["SpalartAllmaras", "Smagorinsky", "Smagorinsky2", "
 supported_turbulence_models = set(['laminar', 'DNS', 'inviscous']) | RAS_turbulence_models | LES_turbulence_models
 
 
-""" boundaryName 
+""" boundaryTypes
 """
 supported_boundary_types = set([
-'pressureInlet',
-'velocityInlet',
+'inlet',
+'wall',  # default
 'outlet',
-'freestream',
-'wall',
+'interface',
+'freestream'
 ])
 
 """
@@ -54,7 +55,7 @@ paired boundary:  `ls $FOAM_SRC/finiteVolume/fields/fvPatchFields/constraint`
         type            cyclicAMI;
     }
 """
-supported_special_boundary_types = set([
+supported_interface_types = set([
 'symmetry',  # planar symmetric, zeroGradient for all
 'empty',   # 2D domain, default name is "frontAndBack"
 'wedge',   # wedge front and back for an axi-symmetric geometry 
@@ -64,40 +65,57 @@ supported_special_boundary_types = set([
 
 """
 User defined function for boundary condition like non-uniform velocity profile is not supported by this script
-CSV table,  funkySetField, could be used 
+CSV table,  funkySetField, could be used in manually case editing
 <http://cfd.direct/openfoam/user-guide/boundaries/>
 """
-supported_boundary_value_types = set([
+supported_inlet_types = set([
+'totalPressure',
+'massFlowRate', #flowRateInletVelocity
+'volumetricFlowRate', #flowRateInletVelocity, flowRateInletVelocity
+'uniformVelocity' # it is called "fixedValue" in OpenFOAM dict file
+])
+    
+supported_outlet_types = set([
+'staticPressure',
+'uniformVelocity'
+'outFlow'  # it is called 'inletOutlet' in OpenFOAM
+])
+
+# this is hte default
+supported_wall_types = set([
+'fixed',
+'slip',
+'movingWallVelocity',
+'translatingWallVelocity'
+])
+
+basic_boundary_value_types = set([
 # `ls $FOAM_SRC/finiteVolume/fields/fvPatchFields/basic`
 'fixedValue',
 'fixedGradient',
 'mixed',
 'zeroGradient',
 'calculated',
-'coupled',  # FSI, conjugate heat transfter
+'coupled'  # FSI, conjugate heat transfter
 # derived: see more by `ls $FOAM_SRC/finiteVolume/fields/fvPatchFields/derived`
-'fixedFluxPressure',
-'freeStream',  # far field velocity field
-'slip',  # slip wall
-'inletOutlet',  # 
-'totalPressure',  # a common pressure inlet
-'uniformFixedValue'
-])  
-    
-    
+])
+"""
+supported_boundary_value_types = basic_boundary_value_types | supported_outlet_types | 
+    supported_inlet_types | supported_interface_types | supported_wall_types 
+"""
+
 class BasicBuilder():
     """ This class contains boundary condition setup for incompressible flow
     """
-    supportedBoundaryTypes = supported_boundary_types | supported_special_boundary_types
-
     def __init__(self,  casePath, 
                         meshPath,
                         solverSettings=getDefaultSolverSettings(),
                         templatePath=getTemplate("simpleFoam"),
-                        turbulenceSettings = {'name': 'laminar'},
-                        fluidProperties = {'nu', 1e6},  # default to water
+                        turbulenceSettings = {'name':'laminar'},
+                        fluidProperties = {'name':'water', "compressible":False, 'kinematicViscosity':1e6},  # default to water
                         boundarySettings = [],
-                        internalFieldSettings = {}
+                        internalFieldSettings = {},
+                        transientSettings = {"startTime":0.0, "endTime":0.0, "timeStep":0.0, "writeInterval":100}
                 ):
         self._casePath = casePath
         self._meshPath = meshPath
@@ -105,16 +123,16 @@ class BasicBuilder():
         
         self._solverSettings = solverSettings
         self._turbulenceSettings = turbulenceSettings
-        
         self._fluidProperties = fluidProperties  # incompressible only
         
         self._boundarySettings = boundarySettings
         self._internalFieldSettings = internalFieldSettings
+        self._transientSettings = transientSettings
         
     def setup(self):
         createCaseFromTemplate(self._casePath, self._templatePath)
 
-    #this API will be used only property set and get are implemented!
+    #call only if all properties or fields are set
     def build(self, rebuilding_case=True, updated_mesh_path=""):
         if rebuilding_case:
             createCaseFromTemplate(self._casePath, self._templatePath)
@@ -122,14 +140,14 @@ class BasicBuilder():
             convertMesh(self._casePath, updated_mesh_path, scaling=True)
             self._meshPath = updated_mesh_path
         
-        self.setfluidProperties()  # materials properties
-        self.setTurbulenceProperties()
+        self.setupFluidProperties()  # materials properties
+        self.setupTurbulenceProperties()
         
-        self.setBoundaryConditions()
-        self.setInternalFields()
+        self.setupBoundaryConditions()
+        self.setupInternalFields()
         if not self.check():
             print_('case setup check failed, please check dict files')
-        #set.setSolverControl()
+        #set.setSolverControl() residual, relaxfactor etc transient parallel
                 
     def check(self):
         """ heatTransfer must has Buoyang = True, and existent of dict
@@ -145,16 +163,20 @@ class BasicBuilder():
         #paired boundary check: cyclic
         return True
         
-    def _getFluidProperties(self):
+    def getFluidProperties(self):
         return self._fluidProperties
-    def _setFluidProperties(self, value):
-        if value:
+    def setFluidProperties(self, value):
+        if value and isinstance(value, dict):
             self._fluidProperties = value
+            if _debug:
+                print_(self._fluidProperties)
         print self._fluidProperties  # dict becomes set() object why?
-    fluidProperties = property(_getFluidProperties, _setFluidProperties)
+    fluidProperties = property(getFluidProperties, setFluidProperties)
     
-    def setFluidProperties(self, settings=None):
-        self.setTransportProperties(settings)
+    def setupFluidProperties(self, settings=None):
+        if settings and isinstance(settings, dict):
+            self.setFluidProperties(settings)
+            self.setupTransportProperties()
     """
     [tutorials/heatTransfer/buoyantBoussinesqSimpleFoam/hotRoom/constant/transportProperties]
     transportModel Newtonian;
@@ -174,60 +196,76 @@ class BasicBuilder():
     // Turbulent Prandtl number
     Prt             [0 0 0 0 0 0 0] 0.7;
     """
-    def setTransportProperties(self, settings=None):
-        """ also control the multiphase properties, 
-        copy dict file from case template is the preferred way for Nonewtonian fluid
-        tutorials/compressible/rhoSimpleFoam: thermophysicalProperties
-        tutorials/incompressible/simpleFoam, nonNewtonianIcoFoam: transportProperties
-        foam-extend: tutorials/viscoelastic/viscoelasticFluidFoam/Oldroyd-B/constant/viscoelasticProperties
-        OpenFoam 3.0, does not need 'nu' before dimension signature, but back-compactible
-        """
-        if settings and isinstance(settings, dict):
-            self._fluidProperties = settings
-        
+    """ also control the multiphase properties, 
+    copy dict file from case template is the preferred way for Nonewtonian fluid
+    tutorials/compressible/rhoSimpleFoam: thermophysicalProperties
+    tutorials/incompressible/simpleFoam, nonNewtonianIcoFoam: transportProperties
+    foam-extend: tutorials/viscoelastic/viscoelasticFluidFoam/Oldroyd-B/constant/viscoelasticProperties
+    OpenFoam 3.0, does not need 'nu' before dimension signature, but back-compactible
+    """
+    def setupTransportProperties(self):
         case = self._casePath
         solver_settings = self._solverSettings
-        assert solver_settings.compressible == False
+        assert solver_settings['compressible'] == False
         
         f = ParsedParameterFile(case + "/constant/transportProperties")
-        if solver_settings.nonNewtonian:
+        if solver_settings['nonNewtonian']:
             print_('Warning: nonNewtonian case setup is not implemented, please edit dict file directly')
         else:
-            print f['nu']
             f['transportModel'] = "Newtonian"
             for k in self._fluidProperties:
-                if k in set(['nu', 'dynamicViscosity', 'molecularViscosity']):
+                if k in set(['nu', 'kinematicViscosity']):
                     viscosity = self._fluidProperties[k]
                     f['nu'] = "nu [0 2 -1 0 0 0 0] {}".format(viscosity)
+            if _debug:
+                print_("Viscosity settings in constant/transportProperties")
+                print_(f['nu'])
         f.writeFile()
 
     def setBoundaryConditions(self, boundarySettings=None):
         if boundarySettings and isinstance(boundarySettings, list) and len(boundarySettings)>=1:
             self._boundarySettings = boundarySettings
+            if _debug:
+                print_("List of boundary condition settings:")
+                for bc in self._boundarySettings:
+                    print_(bc)
+        
+    def setupBoundaryConditions(self, boundarySettings=None):
+        if boundarySettings and isinstance(boundarySettings, list) and len(boundarySettings)>=1:
+            self.setBoundaryConditions(boundarySettings)
+    
         self.initBoundaryConditions()
         if not len(self._boundarySettings):
             print_("Warning: No boundary condition is defined, please check!")
         for bcDict in self._boundarySettings:
-            if bcDict['type'] in supported_special_boundary_types:
-               self.setSpecialBoundary(bcDict['type'], bdDict['name']) 
+            if bcDict['type'] in supported_interface_types:
+               self.setupInterfaceBoundary(bcDict['type'], bdDict['name']) 
             else:
                 assert bcDict['type'] in supported_boundary_types
-                if bcDict['type'] == 'pressureInlet':
-                    self.setPressureInletBoundary(bcDict)
-                elif bcDict['type'] == 'velocityInlet':
-                    self.setVelocityInletBoundary(bcDict)
+                if bcDict['type'] == 'inlet':
+                    if bcDict['valueType'] == 'totalPressure':
+                        self.setupPressureInletBoundary(bcDict)
+                    else:  # massflow or uniformVelocity
+                        self.setupVelocityInletBoundary(bcDict)
                 elif bcDict['type'] == 'outlet':
-                    self.setOutletBoundary(bcDict)
+                    self.setupOutletBoundary(bcDict)
                 elif bcDict['type'] == 'freestream':
-                    self.setFreestreamBoundary(bcDict)
+                    self.setupFreestreamBoundary(bcDict)
                 elif bcDict['type'] == 'wall':
-                    self.setWallBoundary(bcDict)
+                    self.setupWallBoundary(bcDict)
                 else:
                     print_("Warning: boundary type: {} is not supported yet and ignored!".format(bcDict['type']))
 
     def setInternalFields(self, internalFields=None):
         if internalFields:
             self._internalFieldSettings = internalFields  # mapping type like dict
+            if _debug:
+                print_(self._internalFieldSettings)
+                
+    def setupInternalFields(self, internalFields=None):
+        if internalFields:
+            self.setInternalFields( internalFields )
+            
         for var in self._internalFieldSettings:
             f = ParsedParameterFile(self._casePath + "/0/" + var)
             value = self._internalFieldSettings[var]
@@ -237,6 +275,73 @@ class BasicBuilder():
                 f["internalField"] = "uniform {}".format(value)
             f.writeFile()
 
+    """
+    http://cfd.direct/openfoam/user-guide/controldict/
+    startFrom   Controls the start time of the simulation.
+    - firstTime: Earliest time step from the set of time directories.
+    - startTime: Time specified by the startTime keyword entry.
+    - latestTime: Most recent time step from the set of time directories.
+    startTime   Start time for the simulation with startFrom startTime;
+    stopAt  Controls the end time of the simulation.
+    - endTime : Time specified by the endTime keyword entry.
+    - writeNow : Stops simulation on completion of current time step and writes data.
+    - noWriteNow: Stops simulation on completion of current time step and does not write out data.
+    - nextWrite: Stops simulation on completion of next scheduled write time, specified by writeControl.
+    """
+    def setTransientSettings(self, transientSettings):
+        if transientSettings:
+            self._transientSettings = transientSettings
+            if _debug:
+                print_(self._transientSettings)
+            
+    def setupTransientSettings(self, transientSettings):
+        if transientSettings:
+            self.setTransientSettings(transientSettings)
+        if self._transientSettings:
+            f = ParsedParameterFile(self._casePath + "/system/controlDict")
+            f["startTime"] = self._transientSettings["startTime"]
+            f["endTime"] = self._transientSettings["endTime"]
+            f["deltaT"] = self._transientSettings["timeStep"]
+            f["writeInterval"] = self._transientSettings["writeInterval"]
+            f.writeFile()
+        else:
+            print("transientSettings is None")
+
+    ################################## solver control #####################################
+    def setupRelaxationFactors(self, relaxation_factor=0.7):
+        """
+        SIMPLE
+        {
+            nNonOrthogonalCorrectors 2;  //default 0
+            residualControl
+            {
+                p               1e-2;
+                U               1e-3;
+                "(k|epsilon)"   1e-3;
+            }
+        }
+
+        relaxationFactors
+        {
+            fields
+            {
+                p               0.2; //default 0.7
+            }
+            equations
+            {
+                U               0.3; //default 0.7
+                k               0.3; //default 0.7
+                "epsilon.*"     0.5;
+            }
+        }
+        """
+        setDict(self._casePath+"/system/fvSolution", ["relaxationFactors", "fields", "p"], relaxation_factor)
+        setDict(self._casePath+"/system/fvSolution", ["relaxationFactors", "equations", "U"], relaxation_factor)
+        setDict(self._casePath+"/system/fvSolution", ["relaxationFactors", "equations", "k"], relaxation_factor)
+        #if get_dict(case+"/system/fvSolution", "nNonOrthogonalCorrectors", "SIMPLE"):
+        setDict(self._casePath+"/system/fvSolution", "SIMPLE/nNonOrthogonalCorrectors", 2)
+
+            
     ############################## non public API ######################################
     def listVariables(self):
         """ deduce var list rom solver settings or `ls template_case/0/*`
@@ -272,8 +377,9 @@ class BasicBuilder():
             f["boundaryField"][bc]["type"]="zeroGradient"  # zeroGradient type does not need 'value'
         f.writeFile()
     
-    def setSpecialBoundary(self, dcDict):
-        # freestream is kind of like special boundary type like wall, always uniform $internalField
+    #####################################################################
+    def setupInterfaceBoundary(self, dcDict):
+        # freestream is kind of like interface boundary type like wall, always uniform $internalField
         case = self._casePath
         boundary_type = bcDict['type']
         boundary_name = bcDict['name']
@@ -293,19 +399,22 @@ class BasicBuilder():
             elif boundary_type == "wedge":
                 f["boundaryField"][boundary_name] = {}
                 f["boundaryField"][boundary_name]["type"] = "wedge"  # axis-sym
+                # todo: chack pairing of wedge and cyclic boundary 
             else:
                 raise Exception('Boundary or patch type {} is not supported'.format(boundary_type))
             f.writeFile()
 
-    def setCyclicBoundary(self, type, names):
-        """inGroups 1(cyclicAMI); neighbourPatch <ref to the paired patch name>
+    def pairCyclicBoundary(self, type, names):
+        """
+        http://www.cfdsupport.com/OpenFOAM-Training-by-CFD-Support/node108.html
+        inGroups 1(cyclicAMI); neighbourPatch <ref to the paired patch name>
         #boundary file needs to be modified, 
         'transform' = roational, rotationAxis. rotatingCentre
         'transform' = translational; separationVector = 
         """
         pass
 
-    def setPressureInletBoundary(self, bcDict):
+    def setupPressureInletBoundary(self, bcDict):
         # value is MPa in FreeCAD, but Pa is needed in OpenFOAM
         bcName = bcDict['name']
         inlet_type = bcDict['valueType']
@@ -315,26 +424,28 @@ class BasicBuilder():
         else:
             turbulenceSettings = self._turbulenceSettings
         
-        f = ParsedParameterFile(self._casePath + "/0/p")
-        f["boundaryField"][bcName] = {}
+        pf = ParsedParameterFile(self._casePath + "/0/p")
+        pf["boundaryField"][bcName] = {}
+        Uf = ParsedParameterFile(self._casePath + "/0/U")
+        Uf["boundaryField"][bcName] = {}
+        
         if inlet_type == "totalPressure":
-            f["boundaryField"][bcName]["type"] = 'totalPressure'
-            f["boundaryField"][bcName]["p0"] = 'uniform {}'.format(value)
-            f["boundaryField"][bcName]["gamma"] = 0
-            f["boundaryField"][bcName]["value"] = "$internalField"
-        else:
-            f["boundaryField"][bcName]["type"] = 'fixedValue'
-            f["boundaryField"][bcName]["value"] = "uniform {}".format(value)
-        f.writeFile()
+            pf["boundaryField"][bcName]["type"] = 'totalPressure'
+            pf["boundaryField"][bcName]["p0"] = 'uniform {}'.format(value)
+            pf["boundaryField"][bcName]["gamma"] = 0  # what?  1 .4
+            pf["boundaryField"][bcName]["value"] = "$internalField"  # initial value
+        else:  #
+            pf["boundaryField"][bcName]["type"] = 'fixedValue'
+            pf["boundaryField"][bcName]["value"] = "uniform {}".format(value)
+        pf.writeFile()
         # velocity intial value is default to wall, uniform 0, so it needs to change
-        f = ParsedParameterFile(self._casePath + "/0/U")
-        f["boundaryField"][bcName] = {}
-        f["boundaryField"][bcName]["type"] = "zeroGradient"
-        f.writeFile()
+        Uf["boundaryField"][bcName]["type"] = "pressureInletOutletVelocity"
+        Uf["boundaryField"][bcName]["value"] ="uniform (0 0 0)"  # initial value 
+        Uf.writeFile()
         #
-        self.setInletTurbulence(bcName, turbulenceSettings)
+        self.setupInletTurbulence(bcName, turbulenceSettings)
 
-    def setVelocityInletBoundary(self, bcDict):
+    def setupVelocityInletBoundary(self, bcDict):
         """ direction: by default, normal to inlet boundary
         """
         bcName = bcDict['name']
@@ -346,29 +457,101 @@ class BasicBuilder():
             turbulenceSettings = self._turbulenceSettings
         
         # velocity intial value is default to wall: uniform (0,0,0)
-        f = ParsedParameterFile(self._casePath + "/0/U")
-        f["boundaryField"][bcName] = {}  # compressible flow only?
-        if inlet_type == "flowRateInletVelocity":
-            f["boundaryField"][bcName]["type"] = inlet_type
-            f["boundaryField"][bcName]["massFlowRate"] = value  # kg/s
-            f["boundaryField"][bcName]["value"] = "$internalField"
-        else:
+        Uf = ParsedParameterFile(self._casePath + "/0/U")
+        Uf["boundaryField"][bcName] = {}
+        pf = ParsedParameterFile(self._casePath + "/0/p")
+        pf["boundaryField"][bcName] = {}
+        
+        if inlet_type == "massFlowRate":  # compressible flow only?
+            Uf["boundaryField"][bcName]["type"] = "flowRateInletVelocity"
+            Uf["boundaryField"][bcName]["massFlowRate"] = value  # kg/s
+            Uf["boundaryField"][bcName]["rho"] = "rho"
+            Uf["boundaryField"][bcName]["rhoInlet"] = "rho"
+            #f["boundaryField"][bcName]["value"] = "$internalField"
+        elif inlet_type == "volumetricFlowRate":
+            Uf["boundaryField"][bcName]["type"] = "flowRateInletVelocity"
+            Uf["boundaryField"][bcName]["volumetricFlowRate"] = value  # m3/s
+            Uf["boundaryField"][bcName]["value"] = " uniform (0 0 0); // placeholder"
+        elif inlet_type == "uniformVelocity":
             assert len(value) == 3  # velocity must be a tuple or list with 3 components
-            f["boundaryField"][bcName]["type"] = "fixedValue"
-            f["boundaryField"][bcName]["value"] = "uniform {}".format(formatValue(value))
-        f.writeFile()
+            Uf["boundaryField"][bcName]["type"] = "fixedValue"
+            Uf["boundaryField"][bcName]["value"] = "uniform {}".format(formatValue(value))
+        else:
+            print_(inlet_type + " is not supported as inlet boundary type")
+        Uf.writeFile()
         
-        f = ParsedParameterFile(self._casePath + "/0/p")
-        f["boundaryField"][bcName] = {}
-        f["boundaryField"][bcName]["type"] = "zeroGradient"
-        f.writeFile()
+        pf["boundaryField"][bcName]["type"] = "zeroGradient"
+        pf["boundaryField"][bcName]["value"] = "uniform 0"
+        pf.writeFile()
         #
-        self.setInletTurbulence(bcName, turbulenceSettings)
+        self.setupInletTurbulence(bcName, turbulenceSettings)
         
+    def setupOutletBoundary(self, bcDict):
+        """supported_outlet_types: outFlow, pressureOutlet
+        pressureOutlet, for exit to background static pressure
+        outFlow: corresponding to velocityInlet/FlowRateInlet
+        self.supported_outlet_types = set([])
+        http://cfd.direct/openfoam/user-guide/boundaries/
+        inletOutlet: Switches U and p between fixedValue and zeroGradient depending on direction of U
+        pressureInletOutletVelocity: Combination of pressureInletVelocity and inletOutlet
+        """
+        bcName = bcDict['name']
+        outlet_type = bcDict['valueType']
+        value = bcDict['value']
+        if 'turbulenceSettings' in bcDict:
+            turbulenceSettings = bcDict['turbulenceSettings']
+        else:
+            turbulenceSettings = self._turbulenceSettings
+
+            
+        pf = ParsedParameterFile(self._casePath + "/0/p")
+        pf["boundaryField"][bcName] = {}
+        if outlet_type == "totalPressure":
+            pf["boundaryField"][bcName]["type"] = 'totalPressure'
+            pf["boundaryField"][bcName]["p0"] = 'uniform {}'.format(value)
+            pf["boundaryField"][bcName]["gamma"] = 0  # what?  1 .4
+            pf["boundaryField"][bcName]["value"] = "$internalField"  # initial value
+        elif outlet_type == "staticPressure":
+            pf["boundaryField"][bcName]["type"] = "fixedValue"  # totalPressure
+            pf["boundaryField"][bcName]["value"] = "uniform {}".format(value)
+        elif outlet_type == "massFlowRate" or outlet_type == "volumetricFlowRate":
+            #pf["boundaryField"][bcName]["type"] = "zeroGradient"
+            print_("Error: massFlowRate  and volumetricFlowRate not yet supported")
+            return
+        elif outlet_type == "outFlow": #PressureInletVelocityOutlet
+            pf["boundaryField"][bcName]["type"] = "outletInlet"
+            #pf["boundaryField"][bcName]["outletValue"] = "uniform 0"  # not sure! check
+            pf["boundaryField"][bcName]["value"] ="$internalField"
+        else:
+            #default to zeroGradient, for velocityOutlet
+            pf["boundaryField"][bcName]["type"] = "zeroGradient"
+            print_("pressure bundary default to zeroGradient for outlet type '{}' ".format(outlet_type))
+        pf.writeFile()
+        # velocity intial value is default to wall, uniform 0, so it needs to change
+        Uf = ParsedParameterFile(self._casePath + "/0/U")
+        Uf["boundaryField"][bcName] = {}
+        if outlet_type == "totalPressure" or outlet_type == "staticPressure" :
+            Uf["boundaryField"][bcName]["type"] = "pressureInletOutletVelocity"  # 
+            Uf["boundaryField"][bcName]["value"] ="uniform (0 0 0)"  # initial value only
+        elif outlet_type == "uniformVelocity":
+            Uf["boundaryField"][bcName]["type"] = "fixedValue"
+            Uf["boundaryField"][bcName]["value"] = "uniform {}".format(value)
+        elif outlet_type == "outFlow":
+            Uf["boundaryField"][bcName]["type"] = "inletOutlet"
+            Uf["boundaryField"][bcName]["outletValue"] ="uniform (0 0 0)"
+            Uf["boundaryField"][bcName]["value"] ="$internalField"
+            #Uf["boundaryField"][bcName]["inletValue"] ="$internalField"
+        else:  # "massFlowRate" "volumetricFlowRate"
+            print_("velocity bundary set to inletOutlet for outlet type '{}' ".format(outlet_type))
+            Uf["boundaryField"][bcName]["type"] = "zeroGradient"
+        Uf.writeFile()
+        #
+        self.setupOutletTurbulence(bcName, turbulenceSettings)
+
     """
     tutorials/incompressible/simpleFoam/airFoil2D/0.org/
     """
-    def setFreestreamBoundary(self, bcDict):
+    def setupFreestreamBoundary(self, bcDict):
         print_('internalField must be set for each var in 0/ folder')
         bcName = bcDict['name']
         value = bcDict['value']
@@ -387,72 +570,43 @@ class BasicBuilder():
         f["boundaryField"][bcName]["type"] = "freestream"
         f["boundaryField"][bcName]["value"] = "uniform {}".format(formatValue(value))
         f.writeFile()
-        #
-        for var in listTurbulenceVariable(turbulenceSettings['name']):
-            f = ParsedParameterFile(self._casePath + "/0/" + var)
-            f["boundaryField"][bcName] = {}
-            f["boundaryField"][bcName]["type"] = "freestream"
-            f["boundaryField"][bcName]["freestreamValue"] = "$internalField"
-            f.writeFile()
+
         #turbulence inlet may need extra setting up
         if 'turbulenceSettings' in bcDict:
             turbulenceSettings = bcDict['turbulenceSettings']
         else:
             turbulenceSettings = self._turbulenceSettings
-        #setInletTurbulence(self, bcName, turbulenceSettings)  # to check!!!
+        turbulenceSettings["freestreamValue"] = 0.14  # default value?
+        self.setupFreestreamTurbulence(bcName, turbulenceSettings)
 
     """
-    special wall boundary: slip wall, moving wall velocity, roughness
-    for heat transfer: thickness, mateial, 
-    Also some special turbulence setting
+    special wall boundary: slip, partialSlip, moving wall velocity, roughness
+    for heat transfer: thickness, mateial, also some special turbulence setting
+    group: grpWallBoundaryConditions
+    movingWallVelocity: moving wall velocity
+    
     """
-    def setWallBoundary(self, bcDict):
-        pass
-
-
-    def setOutletBoundary(self, bcDict):
-        """supported_outlet_types: outFlow, pressureOutlet
-        pressureOutlet, for exit to background static pressure
-        outFlow: corresponding to velocityInlet/FlowRateInlet
-        self.supported_outlet_types = set([])
-        """
+    def setupWallBoundary(self, bcDict):
         bcName = bcDict['name']
-        outlet_type = bcDict['valueType']
         value = bcDict['value']
-        if 'turbulenceSettings' in bcDict:
-            turbulenceSettings = bcDict['turbulenceSettings']
-        else:
-            turbulenceSettings = self._turbulenceSettings
-
-        f = ParsedParameterFile(self._casePath + "/0/p")
-        f["boundaryField"][bcName] = {}
-        if outlet_type == "pressureOutlet" or outlet_type == "fixedValue":
-            f["boundaryField"][bcName]["type"] = "fixedValue"  # totalPressure
-            f["boundaryField"][bcName]["value"] = "uniform {}".format(value)
-        elif outlet_type == "outFlow":
-            f["boundaryField"][bcName]["type"] = "inletOutlet"
-            f["boundaryField"][bcName]["inletValue"] ="$internalField"
-        else:
-            #default to zeroGradient, for velocityOutlet
-            f["boundaryField"][bcName]["type"] = "zeroGradient"
-            print_("pressure bundary default to zeroGradient for outlet type '{}' ".format(outlet_type))
-        f.writeFile()
-        # velocity intial value is default to wall, uniform 0, so it needs to change
+        wall_type = bcDict['valueType']
         f = ParsedParameterFile(self._casePath + "/0/U")
-        f["boundaryField"][bcName] = {}
-        if outlet_type == "outFlow":
-            f["boundaryField"][bcName]["type"] = "inletOutlet"
-            f["boundaryField"][bcName]["inletValue"] ="$internalField"
-        if outlet_type == "freesteam":
-            f["boundaryField"][bcName]["type"] = "freestream"
-            f["boundaryField"][bcName]["freestreamValue"] = "$internalField"
+        if wall_type == 'movingWallVelocity':
+            f["boundaryField"][bcName] = {}
+            f["boundaryField"][bcName]["type"] = "movingWallVelocity"
+            f["boundaryField"][bcName]["U"] = "{}".format(formatValue(value))
+            f.writeFile()
+            f["boundaryField"][bcName]["U"] = "uniform 0"  # initial value
+        elif wall_type == 'slip' or wall_type == 'partialSlip':
+            print_("special wall boundary: slip, partialSlip is not supported yet")
+        elif wall_type == "translatingWallVelocity":
+            f["boundaryField"][bcName] = {}
+            f["boundaryField"][bcName]["type"] = "translatingWallVelocity"
+            f["boundaryField"][bcName]["U"] = "uniform {}".format(formatValue(value))
+            f.writeFile()
         else:
-            print_("velocity bundary set to inletOutlet for outlet type '{}' ".format(outlet_type))
-            f["boundaryField"][bcName]["type"] = "inletOutlet"
-            f["boundaryField"][bcName]["inletValue"] ="$internalField"
-        f.writeFile()
-        #
-        self.setOutletTurbulence(bcName, turbulenceSettings)
+            pass
+
 
     ###################################################################################
     """
@@ -473,6 +627,16 @@ class BasicBuilder():
     // and inductrial aerodymanics 95(2007) 355-269 by D.M. Hargreaves and N.G. Wright
     """
     def setTurbulenceProperties(self, turbulenceSettings=None):
+        """ see list of turbulence model: http://www.openfoam.org/features/turbulence.php
+        OpenFoam V3.0 has unified turbuence setup dic, incompatible with 2.x
+        currently only some common RAS models are settable by this script
+        """
+        if turbulenceSettings:
+            self._turbulenceSettings = turbulenceSettings
+            if _debug:
+                print_(self._turbulenceSettings)
+
+    def setupTurbulenceProperties(self, turbulenceSettings=None):
         """ see list of turbulence model: http://www.openfoam.org/features/turbulence.php
         OpenFoam V3.0 has unified turbuence setup dic, incompatible with 2.x
         currently only some common RAS models are settable by this script
@@ -519,7 +683,7 @@ class BasicBuilder():
         'mut', used in compressible fluid
         """
         turbulenceModelName = self._turbulenceSettings['name']
-        compressible = self._solverSettings.compressible
+        compressible = self._solverSettings['compressible']
         
         if compressible:
             viscosity_var = 'mut'
@@ -538,7 +702,7 @@ class BasicBuilder():
         elif turbulenceModelName == "qZeta":  # transient models has different var
             var_list = []  # not supported yet in boundary settings
         else:
-            print("Turbulence model {} is not supported yet".format(turbulenceModelName))
+            print_("Turbulence model {} is not supported yet".format(turbulenceModelName))
         return var_list
     
     def initTurbulenceBoundaryAsWall(self, bc_names, turbulence_model):
@@ -578,7 +742,7 @@ class BasicBuilder():
                     raise Exception("Error: turbulent var {} is not recognised".format(var))
             f.writeFile()
             
-    def setInletTurbulence(self, bcName, turbulenceSettings):
+    def setupInletTurbulence(self, bcName, turbulenceSettings):
         """ modeled from case /opt/openfoam30/tutorials/incompressible/simpleFoam/pipeCyclic/0.org
         available turbulentce spec: eddyViscosityRatio or inletTurbulentMixingLength
         """
@@ -631,7 +795,7 @@ class BasicBuilder():
             f.writeFile()
             #zeroGradient; same for wall, inlet and outlet
 
-    def setOutletTurbulence(self, bcName, turbulenceSettings):
+    def setupOutletTurbulence(self, bcName, turbulenceSettings):
         case = self._casePath
         turbulence_var_list = self.listTurbulenceVarables()
         if 'k' in turbulence_var_list:
@@ -668,3 +832,16 @@ class BasicBuilder():
             f["boundaryField"][bcName]["type"] = "zeroGradient"
             f.writeFile()
             #zeroGradient; same for wall, inlet and outlet
+
+    def setupInterfaceTurbulence(self, bcName, turbulenceSettings):
+        pass
+
+    def setupFreestreamTurbulence(self, bcName, turbulenceSettings):
+        case = self._casePath
+        turbulence_var_list = self.listTurbulenceVarables()
+        if v in turbulence_var_list:
+            f = ParsedParameterFile(self._casePath + "/0/"+v)
+            f["boundaryField"][bcName] = {}
+            f["boundaryField"][bcName]["type"] = "freestream"
+            f["boundaryField"][bcName]["freestreamValue"] = "uniform {}".format(turbulenceSettings["freestreamValue"])
+            f.writeFile()

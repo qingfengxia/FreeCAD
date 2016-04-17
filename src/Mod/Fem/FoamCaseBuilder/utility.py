@@ -24,7 +24,7 @@
 """
 This script help setup OpenFOAM case as boundary conditions setup in Ansys Fluent/CFX
 OpenFOAM for windows is available now: http://www.openfoam.com/products/openfoam-windows.php
-docker container in VirtualBox
+docker container in VirtualBox, also  ubuntu on windows 10 may run OpenFOAM directly in the future
 decomposePar should generate the boundary automatically
 Phase I: incompressible laminar and RAS turbulent flow:
 2D mesh, GGI and dynamic mesh will not be supported here
@@ -78,13 +78,15 @@ def getFoamVersion():
 
     #return foamVersionNumber()  # PyFoam.foamVersionString()
 
-def is_foam_extend():
-    #how to detect
+def isFoamExtend():
+    #how to detect?
     if getFoamDir().find('ext') > 0:
         return True
     else:
         return False
 
+def getFoamExtendVersion():
+    pass
 
 #supported_species_models = set([])
 supported_multiphase_models = set(['singlePhase', 'twoLiquidMixing', 'twoPhaseEuler', 'multiphaseImmiscible'])
@@ -92,8 +94,7 @@ supported_multiphase_models = set(['singlePhase', 'twoLiquidMixing', 'twoPhaseEu
 ######################################################################
 
 
-""" access dict as property of class,
-"""
+""" access dict as property of class
 class PropDict(dict):
     def __init__(self, *args, **kwargs):
         super(PropDict, self).__init__(*args, **kwargs)
@@ -101,12 +102,12 @@ class PropDict(dict):
         f = lambda s : s[0].lower() + s[1:]
         d = {f(k):v for k,v in self.iteritems()}
         self.__dict__ = d  # self
-        
+"""
         
 def getDefaultSolverSettings():
-    return PropDict({
+    return {
             'parallel': False,
-            #
+            'compressible': False,
             'nonNewtonian': False, 
             'compressible': False,
             'porous':False,
@@ -122,7 +123,7 @@ def getDefaultSolverSettings():
             #
             #'lagrangianPhaseModel': 'singlePhase',
             #'multiPhaseModel': 'singlePhase'
-            })  # containing all setting properties
+            }  # containing all setting properties
 
 
 """
@@ -166,56 +167,56 @@ MPPICFoam                        sprayFoam
 def getSolverName(settings):
     """ LES model relies on the case template for wall functions and turbulenceProperties
     """
-    if settings.turbulenceModel == "LES":
-        if settings.compressible:
+    if settings['turbulenceModel'] == "LES":
+        if settings['compressible']:
             return 'rhoPimpleFoam'
         else:
             return 'pisoFoam'
-    if settings.turbulenceModel == "DNS":
+    if settings['turbulenceModel'] == "DNS":
         return 'dnsFoam'
-    if settings.heatTransfering:
-        if settings.dynamicMeshing or settings.porous or settings.nonNewtonian:
+    if settings['heatTransfering']:
+        if settings['dynamicMeshing'] or settings['porous'] or settings['nonNewtonian']:
             print_("Error: no matched solver for heat transfering, please develop such a solver")
             return
-        if settings.transient:
-            if settings.conjugate:
+        if settings['transient']:
+            if settings['conjugate']:
                 return 'chtMultiRegionFoam'
-            if settings.compressible:
+            if settings['compressible']:
                 return 'buoyantPimpleFoam'  # natural convection of compressible
             else:
                 return 'buoyantBoussinesqPimpleFoam'  # natural convection of incompressible
         else:
-            if settings.conjugate:
+            if settings['conjugate']:
                 return 'chtMultiRegionSimpleFoam'
-            if settings.compressible:
+            if settings['compressible']:
                 return 'buoyantSimpleFoam'
             else:
                 return 'buoyantBoussinesqSimpleFoam'
     #if settings.MultiphaseModel != "singlePhase" or settings.ConbustionModel != "noConbustion"
     #    print_("Error: multiphase, conbustion model is not checked yet")
     #    return None
-    if settings.compressible:
+    if settings['compressible']:
         #if settings.superSonic:
             #return 'sonicFoam'
-        if settings.transient:
-            if settings.dynamicMeshing:
+        if settings['transient']:
+            if settings['dynamicMeshing']:
                 return 'rhoPimpleDyMFoam'
             return 'rhoPimpleFoam'
         else:
-            if settings.porous:
+            if settings['porous']:
                 return 'rhoPorousSimpleFoam'
             return 'rhoSimpleFoam'
     else:  # incompressible:
-        if settings.transient:
-            if settings.dynamicMeshing:
+        if settings['transient']:
+            if settings['dynamicMeshing']:
                 return 'pimpleDyMFoam'
-            if not settings.nonNewtonian:
+            if not settings['nonNewtonian']:
                 return 'pimpleFoam'  # pisoFoam
             else:
                 return  'nonNewtonianIcoFoam'
         else:
-            if not settings.nonNewtonian:
-                if settings.porous:
+            if not settings['nonNewtonian']:
+                if settings['porous']:
                     return 'porousSimpleFoam'
                 else:
                     return 'simpleFoam'
@@ -377,6 +378,30 @@ def plotSolverProgress(case):
     """GNUplot to plot convergence progress of simulation"""
     pass
     
+    
+def clearCase(case):
+    runFoamCommand("rm -rf {}".format(case) )
+    
+
+def editCase(casepath):
+    import subprocess
+    import sys
+    path = casepath
+    if sys.platform == 'darwin':
+        def openFolder(path):
+            subprocess.check_call(['open', '--', path])
+    elif "linux" in sys.platform:  # python 2: linux2 linux3, but 'linux' for python3
+        def openFolder(path):
+            subprocess.check_call(['xdg-open', '--', path])
+    elif sys.platform == 'win32':
+        def openFolder(path):
+            subprocess.check_call(['explorer', path])
+    openFolder()
+    
+def showResult(case):
+    runFoamCommand("paraFoam -case {}".format(case) )   
+    
+    
 ###############################################################################
 def getDict(dict_file, key):
     if isinstance(key, string_types) and key.find('/')>=0:
@@ -404,7 +429,7 @@ def getDict(dict_file, key):
 def formatValue(v):
     if isinstance(v, string_types) or isinstance(v, numbers.Number):
         return v
-    elif (isinstance(v, list) or isinstance(v, tuple) or isinstance(v, tupleProxy)):
+    elif isinstance(v, list) or isinstance(v, tuple):  # or isinstance(v, tupleProxy))
         return "({} {} {})".format(v[0], v[1], v[2])
     else:
         raise Exception("Error: vector input {} is not string or sequence type, return zero vector string")
@@ -461,38 +486,4 @@ conjugate heat transfer model needs multi-region
 """
 def listRegions(case):
     pass
-
-################################## solver control #####################################
-def setRelaxationFactors(case, relaxation_factor=0.25):
-    """
-    SIMPLE
-    {
-        nNonOrthogonalCorrectors 2;  //default 0
-        residualControl
-        {
-            p               1e-2;
-            U               1e-3;
-            "(k|epsilon)"   1e-3;
-        }
-    }
-
-    relaxationFactors
-    {
-        fields
-        {
-            p               0.2; //default 0.7
-        }
-        equations
-        {
-            U               0.3; //default 0.7
-            k               0.3; //default 0.7
-            "epsilon.*"     0.5;
-        }
-    }
-    """
-    setDict(case+"/system/fvSolution", ["relaxationFactors", "fields", "p"], relaxation_factor)
-    setDict(case+"/system/fvSolution", ["relaxationFactors", "equations", "U"], relaxation_factor)
-    setDict(case+"/system/fvSolution", ["relaxationFactors", "equations", "k"], relaxation_factor)
-    #if get_dict(case+"/system/fvSolution", "nNonOrthogonalCorrectors", "SIMPLE"):
-    setDict(case+"/system/fvSolution", "SIMPLE/nNonOrthogonalCorrectors", 2)
 
