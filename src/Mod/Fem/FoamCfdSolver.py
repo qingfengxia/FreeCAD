@@ -20,7 +20,7 @@
 #*                                                                         *
 #***************************************************************************
 
-__title__ = "Command and Classes for New CAE Analysis"
+__title__ = "Classes for New CFD solver"
 __author__ = "Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
@@ -49,6 +49,7 @@ class CaeSolver():
         obj.Proxy = self  # link between App::DocumentObject to  this object
         
         #some properties previously defined in FemSolver C++ object are moved here
+        # FemSolverObject standard properties should be set in _SetSolverInfo() of CaeSolver.py
         if not "SolverName" in obj.PropertiesList:
             obj.addProperty("App::PropertyString", "SolverName", "Solver",
                             "unique solver name to identify the solver")
@@ -62,7 +63,7 @@ class CaeSolver():
             obj.addProperty("App::PropertyString", "ExternalCaseEditor", "Solver",
                             "External Case Editor's program name like any text editor")
             #the above the properties can be initialised in CaeAnalysis._makeCaeAnalysis()                
-            obj.addProperty("App::PropertyString", "WorkingDir", "Solver",
+            obj.addProperty("App::PropertyPath", "WorkingDir", "Solver",
                             "Solver process is run in this directory")
             obj.addProperty("App::PropertyString", "InputCaseName", "Solver",
                             "input file name without suffix or case folder name")
@@ -72,12 +73,14 @@ class CaeSolver():
                             "result of analysis has been obtained, i.e. case setup is fine")
             obj.InputCaseName = 'TestCase'
             obj.WorkingDir = './'
-        # general CFD properties,  create if not existent
-        if not "Compressible" in obj.PropertiesList:
-            # API: addProperty(self,type,name='',group='',doc='',attr=0,readonly=False,hidden=False)
+            
+            
+        # API: addProperty(self,type,name='',group='',doc='',attr=0,readonly=False,hidden=False)
+        if not "TurbulenceModel" in obj.PropertiesList:
             obj.addProperty("App::PropertyEnumeration", "TurbulenceModel", "CFD",
                             "Laminar,KE,KW,LES,etc")
             obj.TurbulenceModel = list(supported_turbulence_models)
+            obj.TurbulenceModel = "laminar"
             obj.addProperty("App::PropertyEnumeration", "MultiPhaseModel", "CFD",
                             "Mixing, VoF, DiscreteParticleModel")
             obj.MultiPhaseModel = list(supported_multiphase_models)
@@ -88,8 +91,10 @@ class CaeSolver():
                             "Compressible air or Incompressible like liquid, including temperature field", True)
             obj.addProperty("App::PropertyBool", "Porous", "CFD",
                             "Porous material model enabled or not", True)
-            obj.addProperty("App::PropertyBool", "Nonnewtonian", "CFD",
+            obj.addProperty("App::PropertyBool", "NonNewtonian", "CFD",
                             "fluid property, strain-rate and stress constition, water and air are Newtonion", True)
+            obj.addProperty("App::PropertyVector", "Gravity", "CFD",
+                            "gravity and other body accel")           
             #heat transfer group
             obj.addProperty("App::PropertyBool", "HeatTransfering", "HeatTransfer",
                              "calc temperature field, needed by compressible flow", True)
@@ -100,12 +105,21 @@ class CaeSolver():
             #obj.RadiationModel = list(supported_radiation_models)
             obj.addProperty("App::PropertyBool", "Conjugate", "HeatTransfer",
                              "MultiRegion fluid and solid conjugate heat transfering analysis", True)
+            
             # CurrentTime TimeStep StartTime, StopTime
             obj.addProperty("App::PropertyBool", "Transient", "Transient",
                             "Static or transient analysis", True)
+            obj.addProperty("App::PropertyFloat", "StartTime", "Transient",
+                            "Time settings for transient analysis", True)
+            obj.addProperty("App::PropertyFloat", "EndTime", "Transient",
+                            "Time settings for transient analysis", True)
+            obj.addProperty("App::PropertyFloat", "TimeStep", "Transient",
+                            "Time step (second) for transient analysis", True)
+                            
+            obj.addProperty("App::PropertyFloat", "WriteInterval", "Transient",
+                            "WriteInterval (second) for transient analysis", True)  # static case?
             #MultiphysicalCoupling
             # additional solver specific properties
-        # FemSolverObject standard properties should be set in _SetSolverInfo() of CaeSolver.py
 
     ########## CaeSolver API #####################
     def check_prerequisites(self, analysis_object):
@@ -117,14 +131,7 @@ class CaeSolver():
             analysis_object = FemGui.getActiveAnalysis()
         import FoamCaseWriter
         writer = FoamCaseWriter.FoamCaseWriter(analysis_object)
-        writer.write_case()
-
-
-    def generate_cmdline(self):
-        case_path = self.Object.WorkingDir + os.path.sep + self.Object.InputCaseName
-        import FoamCaseBuilder
-        solver_name = FoamCaseBuilder.getSolverName(self.Object)
-        return "{} -case {}".format(solver_name, case_path)
+        return writer.write_case()
 
     def edit_case_externally(self):
         case_path = self.Object.WorkingDir + os.path.sep + self.Object.InputCaseName
@@ -132,10 +139,18 @@ class CaeSolver():
             QtGui.QDesktopServices.openUrl(QtCore.QUrl(case_path))
         else:
             FreeCAD.PrintMessage("Please edit the case input files under {}".format(case_path))
-
+        return True
+        
+    def solve_case(self):
+        case_path = self.Object.WorkingDir + os.path.sep + self.Object.InputCaseName
+        from FoamCaseWriter import getSolverSettings 
+        solver_name = getSolverName(getSolverSettings(self.Object))
+        return "please run the command in new terminal: {} -case {}".format(solver_name, case_path)
+        
     def view_result_externally(self):
         case_path = self.Object.WorkingDir + os.path.sep + self.Object.InputCaseName
-        return "paraFoam  -case {}".format(case_path)
+        FoamCaseBuilder.runFoamCommand("paraFoam  -case {}".format(case_path))
+        return True
 
     ############ standard FeutureT methods ##########
     def execute(self, obj):

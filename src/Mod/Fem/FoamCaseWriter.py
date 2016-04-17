@@ -44,6 +44,15 @@ import CaeTools
 import FoamCaseBuilder as fcb # function not depends on FreeCAD
 
 
+
+def getSolverSettings(solver):
+    dict = {}
+    f = lambda s : s[0].lower() + s[1:]
+    for prop in solver.PropertiesList:
+        dict[f(prop)] = solver.getPropertyByName(prop)
+    return dict
+
+
 def convert_quantity_to_MKS(input, quantity_type, unit_system="MKS"):
     """ convert non MKS unit quantity to SI MKS (metre, kg, second)
     FreeCAD default length unit is mm, not metre, thereby, area is mm^2, pressure is MPa, etc
@@ -59,7 +68,6 @@ def is_solid_mesh(fem_mesh):
     if fem_mesh.VolumeCount > 0:  # solid mesh
         return True
 
-
 class FoamCaseWriter:
     """write_case() is the only public API
     """
@@ -70,6 +78,7 @@ class FoamCaseWriter:
         self.analysis_obj = analysis_obj
         self.solver_obj = CaeTools.getSolver(analysis_obj)
         self.mesh_obj = CaeTools.getMesh(analysis_obj)
+        self.material_obj = CaeTools.getMaterial(analysis_obj)
         self.bc_group = CaeTools.getConstraintGroup(analysis_obj)
         self.mesh_generated = False
         
@@ -77,8 +86,8 @@ class FoamCaseWriter:
         #solver_name = fcb.getSolverName(self.solver_obj)  # solver_name = 'simpleFoam' 
         #template_path = fcb.getTemplate(solver_name)
         self.mesh_file_name = self.case_folder + os.path.sep + self.solver_obj.InputCaseName + u".unv"
-        #solver_settings = {k:self.solver_object.property(), for k in self.solver_object.properties()}
-        self.builder = fcb.BasicBuilder(self.case_folder, self.mesh_file_name)
+
+        self.builder = fcb.BasicBuilder(self.case_folder, self.mesh_file_name, getSolverSettings(self.solver_obj))
         self.builder.setup()
 
     def write_case(self, updating=False):
@@ -90,17 +99,19 @@ class FoamCaseWriter:
             
             self.write_material()
             self.write_boundary_condition()
+            self.builder.setupTurbulenceProperties({"name": self.solver_obj.TurbulenceModel})
             
             self.write_solver_control()
             self.write_time_control()
             FreeCAD.Console.PrintMessage("{} Sucessfully write {} case to folder".format(self.solver_obj.SolverName, self.solver_obj.WorkingDir))
-        except e:
-            print(e)
-            return False
+            return True
+        #except Exception as e:
+        #    print_(e)
+        #    return False
         finally:
             if FreeCAD.GuiUp:
                 QApplication.restoreOverrideCursor()
-            return True
+            
 
     def write_bc_faces(self, unv_mesh_file, bc_id, bc_object):
         FreeCAD.Console.PrintMessage('write face_set or patches for boundary\n')
@@ -162,44 +173,49 @@ class FoamCaseWriter:
 
     def write_material(self, material=None):
         """Air, Water, CustomedFluid, first step, default to Water"""
-        pass
+        # {'name':'water', 'kinematicViscosity':1e6},  # default to water
+        self.builder.setupFluidProperties(self.material_obj.FluidicProperties)
 
     def write_boundary_condition(self):
-        """switch case to deal diff boundary condition, mapping FEM constrain to CFD boundary conditon
-        thermal BC heat flux and or fixed temperature, volume force / load, is not implemented yet
+        """switch case to deal diff fluid boundary condition, 
+        thermal and turbulent is not yet supported, 
         """
         caseFolder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
-        #turbulence_model setting up here, is object oriented builder better?
         bc_settings = []
         for bc in self.bc_group:
-            if bc.isDerivedFrom("Fem::ConstraintPressure"):  # pressure inlet or outlet (Revsered = True)
-                if bc.Reversed == True:
-                    #FreeCAD pressure unit is MPa, while OpenFoam accept only Pa
-                    bc_settings.append({'name': bc.Label, "type": "outlet", "valueType": "pressureOutlet", "value": bc.Pressure*1e6})
-                else:
-                    bc_settings.append({'name': bc.Label, "type": "pressureInlet", "valueType": "totalPressure", "value": bc.Pressure*1e6})
-            elif bc.isDerivedFrom("Fem::ConstraintForce"):  # mapping force to fluid velocity inlet or outlet
-                if bc.Reversed == True:
-                    bc_settings.append({'name': bc.Label, "type": "outlet", "valueType": "outFlow", "value": 0.01})
-                else:
-                    bc_settings.append({'name': bc.Label, "type": "velocityInlet", "valueType": "fixedValue", "value": (0.1,0,0)})  # to-do
-            elif bc.isDerivedFrom("Fem::ConstraintSymmetry"):  # plane symmetry to halve the computation time
-                bc_settings.append({'name': bc.Label, type: "symmetry"})
-            elif bc.isDerivedFrom("Fem::ConstraintFixed"):  # wall
-                bc_settings.append({'name': bc.Label, type: "wall"})
+            FreeCAD.Console.PrintMessage("processing boundary: " + bc.Label)
+            assert bc.isDerivedFrom("Fem::FluidBoundary")
+            bc_dict = {'name': bc.Label, "type": bc.BoundaryType, "valueType": bc.Subtype, "value": bc.BoundaryValue}
+            if bc_dict['type'] == 'inlet' and bc_dict['valueType'] == 'uniformVelocity':
+                bc_dict['value'] = [ abs(v)*bc_dict['value'] for v in tuple(bc.DirectionVector)]   # App::PropertyVector
+            if self.solver_obj.HeatTransfering:
+                bc_dict['thermalSettings'] = {"valueType":bc.ThermalBoundaryType, 
+                                              "temperature":bc.TemperatureValue, 
+                                              "heatFlux":bc.HeatFluxValue,
+                                              "HTC":bc.HTCoeffValue}
+            if self.solver_obj.TurbulenceModel not in  set(["laminar", "invisid"]):
+                bc_dict['turbulenceSettings'] = {"name": self.solver_obj.TurbulenceModel,
+                                                 "specification": bc.TurbulenceSpecification,
+                                                 "turbulentIntensity": bc.TurbulentIntensityValue,
+                                                 "hydraulicDiameter": bc.TurbulentLengthValue
+                                                }
             else:
-                FreeCAD.Console.PrintMessage('boundary condition not supported yet\n')
-        # non-group boundary surface should be wall, print a warning msg
-        self.builder.setBoundaryConditions(bc_settings)
+                pass  # bc_dict['turbulenceSettings'] = {'name':"laminar"}
+            bc_settings.append(bc_dict)
+        self.builder.setupBoundaryConditions(bc_settings)
 
     def write_solver_control(self):
-        """ relaxRatio, fvOptions. fvControl
+        """ relaxRatio, fvOptions. fvControl, residual
         """
         caseFolder = self.solver_obj.WorkingDir + os.path.sep + self.solver_obj.InputCaseName
-        fcb.setRelaxationFactors(caseFolder, 0.25)  # set relaxationFactors to 0.25 for the coarse 3D mesh
+        self.builder.setupRelaxationFactors(0.45)  # set relaxationFactors to 0.25 for the coarse 3D mesh
 
     def write_time_control(self):
         """ controlDict for time information
         """
-        if self.solver_obj.Transient == False:
-            pass
+        if self.solver_obj.Transient == True:
+            self.builder.setupTransientSettings({"startTime":self.solver_obj.StartTime,
+                                      "endTime":self.solver_obj.EndTime,
+                                      "timeStep":self.solver_obj.TimeStep,
+                                      "writeInterval":self.solver_obj.WriteInterval
+                                      })
