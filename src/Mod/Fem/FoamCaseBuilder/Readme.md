@@ -4,6 +4,7 @@
 
 Qingfeng Xia
 Jan 24, 2016
+updated: April 17, 2016
 
 
 ### Introduction
@@ -15,14 +16,16 @@ CFD case setup code should be independent from CalculiX code, to reduce work to 
 
 ### OpenFoam is designed for POSIX, but possible on windows
 
-possible routes: FreeFoam+cygwin; docker as the OpenFoam official done;  wine
-
+Possible routes: 
+- FreeFoam+cygwin; 
+- docker as the OpenFoam official done (launched in 2015);  
 see [windows support in Docker](http://www.openfoam.com/download/install-windows.php).
 I have not tried to call a command in docker Linux Image from windows. 
+- ubuntu on windows (Annouced in April 2016)
 
 ### Software prerequisits for Testing (Linux ONLY!!!)
 
-Test on ubuntu 14.04
+Test only on ubuntu 14.04
 
 OpenFoam 2.x/3.0 can be installed from repo, which will also install the correct Paraview.  Please install OpenFoam 3.0 to default location /opt/, as if the FoamCaseBuilder default to 3.0 version if it can not detect the OpenFoam version.
 
@@ -32,26 +35,30 @@ see [installation guide](http://www.openfoam.com/download/install-binary.php) If
 see [OpenFoam quick startup guide](http://www.openfoam.org/)
 see [tutorials](http://cfd.direct/openfoam/user-guide/) 
 
-Basically, I need several progam on PATH and some env var exported, like icoFoam, paraview, paraFoam. This be easily done by source a bash script(/opt/openfoam30/etc/bashrc.sh) in your ~/.bashrc, but there is a serious issue,  this script can not been sourced to system wide, like /etc/profile,  user can not log into desktop once source this. Nevertheless, I failed to run Popen(cmd, Terminal=True) , which I wish it can simulate run a program in a new terminal (which will source ~/.bashrc).
+Basically, I need several programs on PATH and some env var exported, like icoFoam, paraview, paraFoam. This be easily done by source a bash script(/opt/openfoam30/etc/bashrc.sh) in your ~/.bashrc, but there is a serious issue,  this script can not been sourced to system wide, like /etc/profile,  user can not log into desktop once source this. Nevertheless, I failed to run Popen(cmd, Terminal=True) , which I wish it can simulate run a program in a new terminal (which will source ~/.bashrc).
 
-Could some one help out this? making /opt/openfoam30/etc/bashrc.sh  sourced before Popen().
+default to openfoam installation path: "/opt/openfoam30/" , as in Ubuntu 14.04
+runFoamCommand():
+bash -c 'source /opt/openfoam30/etc/bashrc.sh & paraFoam'
 
-### Test FoamCaseBuilder independently from FreeCAD
+### FoamCaseBuilder as an independent module
 
-git clone --branch foambuilder_pre1 https://github.com/qingfengxia/FreeCAD.git  --single-branch
+FoamCaseBuilder  is designed as working without any GUI, seen "TestBulderer.py"
 
-Please run the "TestFolder.py" from the FoamCaseBuilder folder, as all data file (template.zip and mesh) are relative from this folder/file
+git clone --branch foambuilder_pre2 https://github.com/qingfengxia/FreeCAD.git  --single-branch
+
+Please run the "TestBulderer.py" from the FoamCaseBuilder folder, as all data file (template.zip and mesh) are relative from this folder/file
 
  trimmed case is copied from a zipped template file, then FoamCaseBuilder script will modify the case folder accordingly. 
 
-### Test FoamCaseBuilder from FreeCAD
+### Test FoamCaseBuilder in FreeCAD
 
-As the boundary condition/constraint GUI is not designed, it is not necessary to test this part for the moment. 
+As the boundary condition/constraint GUI is finished , it is possible to test in GUI. 
 
-I have a CfdExample.py in FEM folder,  paste this into FreeCAD, can make the example shown in my figure above.  
-However, the mesh can not be re-generated from the macro/script, it needs to click GUI to generate mesh.
-Material taskpanel need to re-opened to select a material, while it is not needed in CFD for the moment, it is default to Air. 
-Maybe, I should record a vidoe to show in later stage.
+I have a CfdExample.py in Mod/Fem folder,  paste the first half into FreeCAD console, it can make the example shown in my figure above.  
+However, the mesh can not be re-generated from the macro/script, it needs to click Mesh Taskpanel GUI to generate mesh.
+
+Material taskpanel is not needed in CFD mode as it is default to water. Change the viscosity in OpenFoam case setup please
 
 ### see Readme_roadmap.md for plan
 
