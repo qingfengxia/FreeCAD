@@ -21,8 +21,13 @@
 #***************************************************************************
 
 __title__ = "Job Control Task Panel"
-__author__ = "Juergen Riegel"
+__author__ = "Juergen Riegel, Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
+
+"""
+Naming is not consistent in this file, 
+compatible layer for Calculix is not removed but not updated since 2016-01-04
+"""
 
 from FemTools import FemTools
 import FreeCAD
@@ -72,7 +77,8 @@ class _TaskPanelAnalysisControl:
                 else:
                     self.CalculixBinary = 'ccx'
             self.fem_prefs = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Fem")  # why twice? refresh?
-
+        else:
+            self.form.gb_analysis_type.setVisible(False)
         self.fem_console_message = ''
 
         # Connect Signals and Slots
@@ -80,6 +86,7 @@ class _TaskPanelAnalysisControl:
         QtCore.QObject.connect(self.form.pb_write_inp, QtCore.SIGNAL("clicked()"), self.write_input_file_handler)
         QtCore.QObject.connect(self.form.pb_edit_inp, QtCore.SIGNAL("clicked()"), self.editSolverInputFile)
         QtCore.QObject.connect(self.form.pb_run_solver, QtCore.SIGNAL("clicked()"), self.runSolverProcess)
+        QtCore.QObject.connect(self.form.pb_show_result, QtCore.SIGNAL("clicked()"), self.showResult)
         # combobox is preferred
         QtCore.QObject.connect(self.form.rb_static_analysis, QtCore.SIGNAL("clicked()"), self.select_static_analysis)
         QtCore.QObject.connect(self.form.rb_frequency_analysis, QtCore.SIGNAL("clicked()"), self.select_frequency_analysis)
@@ -291,9 +298,13 @@ class _TaskPanelAnalysisControl:
             self.femConsoleMessage("Run OpenFoam at {}".format(self.solver_object.WorkingDir))
             self.cwd = QtCore.QDir.currentPath()
             QtCore.QDir.setCurrent(self.solver_object.WorkingDir)
-            self.SolverProcess.start(self.solver_python_object.generate_cmdline())
+            self.SolverProcess.start(self.solver_python_object.solve_case())
 
         QApplication.restoreOverrideCursor()
+        
+    def showResult(self):
+        print ('shown result by external program')
+        self.solver_python_object.view_result_externally()
 
     def select_analysis_type(self, analysis_type):
         if self.analysis_object.AnalysisType != analysis_type:
