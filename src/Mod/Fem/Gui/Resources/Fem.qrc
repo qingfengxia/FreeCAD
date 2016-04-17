@@ -4,10 +4,11 @@
         <file>icons/fem-fem-mesh-create-node-by-poly.svg</file>
         <file>icons/fem-analysis.svg</file>
         <file>icons/fem-cfd-analysis.svg</file>
-        <file>icons/fem-mech-analysis.svg</file>
+	<file>icons/fem-mech-analysis.svg</file>
+	<file>icons/fem-material.svg</file>
+	<file>icons/fem-fluid-boundary.svg</file>
         <file>icons/fem-solver.svg</file>
         <file>icons/fem-constraint-force.svg</file>
-	<file>icons/fem-fluid-boundary.svg</file>
         <file>icons/fem-constraint-fixed.svg</file>
         <file>icons/fem-constraint-pressure.svg</file>
         <file>icons/fem-constraint-bearing.svg</file>
@@ -17,7 +18,6 @@
         <file>icons/fem-add-material.svg</file>
         <file>icons/fem-add-part.svg</file>
         <file>icons/fem-inp-editor.svg</file>
-        <file>icons/fem-material.svg</file>
         <file>icons/fem-new-analysis.svg</file>
         <file>icons/fem-purge-results.svg</file>
         <file>icons/fem-quick-analysis.svg</file>
