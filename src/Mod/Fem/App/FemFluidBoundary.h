@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (c) 2013 Jan Rheinländer <jrheinlaender[at]users.sourceforge.net>     *
+*   Copyright (c) 2016 Qingfeng Xia <qingfeng.xia    iesensor.com>        *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -45,8 +45,17 @@ public:
     App::PropertyEnumeration BoundaryType;
     App::PropertyEnumeration Subtype;
     App::PropertyFloat BoundaryValue;
+    App::PropertyLinkSub Direction; 
+   
+    App::PropertyEnumeration TurbulenceSpecification;
+    App::PropertyFloat TurbulentIntensityValue;
+    App::PropertyFloat TurbulentLengthValue;
+    
+    App::PropertyEnumeration ThermalBoundaryType;
+    App::PropertyFloat TemperatureValue;
+    App::PropertyFloat HeatFluxValue;
+    App::PropertyFloat HTCoeffValue;
 
-    App::PropertyLinkSub Direction;
     App::PropertyBool Reversed;
     // Read-only (calculated values). These trigger changes in the ViewProvider
     App::PropertyVectorList Points;

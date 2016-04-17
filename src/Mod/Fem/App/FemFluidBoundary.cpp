@@ -42,27 +42,61 @@ using namespace Fem;
 
 PROPERTY_SOURCE(Fem::FluidBoundary, Fem::Constraint);
 
-const char* BoundaryTypes[] = {"inlet","wall","outlet","interface","freestream", NULL};
-//identical with TaskFemFluidBoundary
-const char* WallSubtypes[] = {"unspecific", "fixed",NULL};
-const char* InletSubtypes[] = {"unspecific","totalPressure","uniformVelocity","flowrate",NULL};
-const char* OutletSubtypes[] = {"unspecific","totalPressure","uniformVelocity","flowrate",NULL};
-const char* InterfaceSubtypes[] = {"unspecific","symmetry","wedge","cyclic","empty", NULL};
-const char* FreestreamSubtypes[] = {"unspecific", "freestream",NULL};
-    
+//#include "CfdConstants.h"
+//boudanry types are also defined in foamcasebuilder/basicbuilder.py, please update simultaneously
+
+// the second (index 1) is the default enum, as index 0 causes compiling error
+static const char* BoundaryTypes[] = {"inlet","wall","outlet","interface","freestream", NULL};
+static const char* WallSubtypes[] = {"unspecific", "fixed", "slip", "moving", NULL};
+static const char* InletSubtypes[] = {"unspecific","totalPressure","uniformVelocity","volumetricFlowRate","massFlowRate", NULL};
+static const char* OutletSubtypes[] = {"unspecific","totalPressure","staticPressure","uniformVelocity", "outFlow", NULL};
+static const char* InterfaceSubtypes[] = {"unspecific","symmetry","wedge","cyclic","empty", NULL};
+static const char* FreestreamSubtypes[] = {"unspecific", "freestream",NULL};
+
+// see Ansys fluet manual: Turbulence Specification method
+static const char* TurbulenceSpecifications[] = {"Intensity&LengthScale","Intensity&HydraulicDiameter",NULL};
+//activate the heat transfer and radiation model in Solver object explorer
+static const char* TurbulenceSpecificationHelpTexts[] = {"see Ansys fluet manual: Turbulence Specification method", 
+            "or fully devloped internal flow, Turbulence intensity (0-1.0) 0.05 typical", NULL};
+
+//HTC value type, not sure it is supported in OpenFOAM
+static const char* ThermalBoundaryTypes[] = {"fixedValue","zeroGradient", "fixedGradient", "mixed",  "HTC","coupled", NULL};
+//const char* ThermalBoundaryTypes[] = {"fixedValue","zeroGradient", "fixedGradient", "mixed", "coupled",NULL};
+static const char* ThermalBoundaryHelpTexts[] = {"fixed Temperature [K]", "no heat transfer ()", "fixed value heat flux [W/m2]", 
+            "mixed fixedGradient and fixedValue", "Heat transfer coeff [W/(M2)/K]", "conjugate heat transfer with solid", NULL};
+
 FluidBoundary::FluidBoundary()
 {
+    // momemtum boundary: pressure and velocity
     ADD_PROPERTY_TYPE(BoundaryType,(1),"FluidBoundary",(App::PropertyType)(App::Prop_None),
                       "Basic boundary type like inlet, wall, outlet,etc");
     BoundaryType.setEnums(BoundaryTypes);
     ADD_PROPERTY_TYPE(Subtype,(1),"FluidBoundary",(App::PropertyType)(App::Prop_None),
                       "Subtype defines value type or more specific type");
     Subtype.setEnums(WallSubtypes);
-    
     ADD_PROPERTY_TYPE(BoundaryValue,(0.0),"FluidBoundary",(App::PropertyType)(App::Prop_None),
                       "Scaler value for the specific value subtype, like pressure, velocity");
     ADD_PROPERTY_TYPE(Direction,(0),"FluidBoundary",(App::PropertyType)(App::Prop_None),
-                      "Element giving direction of constraint");
+                      "Element giving vector direction of constraint");
+    
+    ADD_PROPERTY_TYPE(TurbulenceSpecification,(1),"Turbulence",(App::PropertyType)(App::Prop_None),
+                      "Turbulence boundary type");
+    TurbulenceSpecification.setEnums(TurbulenceSpecifications); //Turbulence Specification Method
+    ADD_PROPERTY_TYPE(TurbulentIntensityValue,(0.0),"Turbulence",(App::PropertyType)(App::Prop_None),
+                      "Scaler value for Turbulent intensity etc");
+    ADD_PROPERTY_TYPE(TurbulentLengthValue,(0.0),"Turbulence",(App::PropertyType)(App::Prop_None),
+                      "Scaler value for Turbulent length scale, hydraulic diameter etc");
+    
+    ADD_PROPERTY_TYPE(ThermalBoundaryType,(1),"HeatTransfer",(App::PropertyType)(App::Prop_None),
+                      "Thermal boundary type");
+    ThermalBoundaryType.setEnums(ThermalBoundaryTypes);
+    ADD_PROPERTY_TYPE(TemperatureValue,(0.0),"HeatTransfer",(App::PropertyType)(App::Prop_None),
+                      "Temperature value for thermal boundary condition");
+    ADD_PROPERTY_TYPE(HeatFluxValue,(0.0),"HeatTransfer",(App::PropertyType)(App::Prop_None),
+                      "Heat flux value for thermal boundary condition");
+    ADD_PROPERTY_TYPE(HTCoeffValue,(0.0),"HeatTransfer",(App::PropertyType)(App::Prop_None),
+                      "Heat transfer coefficient for convective boundary condition");
+  
     ADD_PROPERTY(Reversed,(0));
     ADD_PROPERTY_TYPE(Points,(Base::Vector3d()),"FluidBoundary",App::PropertyType(App::Prop_ReadOnly|App::Prop_Output),
                       "Points where arrows are drawn");

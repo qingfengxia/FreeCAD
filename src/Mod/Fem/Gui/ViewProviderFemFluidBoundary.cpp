@@ -107,103 +107,183 @@ bool ViewProviderFemFluidBoundary::setEdit(int ModNum)
 
 #define ARROWLENGTH 9
 #define ARROWHEADRADIUS (ARROWLENGTH/3)
+#define HEIGHT 4
+#define WIDTH (1.5*HEIGHT)
 #define USE_MULTIPLE_COPY
 
 void ViewProviderFemFluidBoundary::updateData(const App::Property* prop)
 {
     // Gets called whenever a property of the attached object changes
     Fem::FluidBoundary* pcConstraint = static_cast<Fem::FluidBoundary*>(this->getObject());
-
-#ifdef USE_MULTIPLE_COPY
-    if (pShapeSep->getNumChildren() == 0) {
-        // Set up the nodes
-        SoMultipleCopy* cp = new SoMultipleCopy();
-        cp->matrix.setNum(0);
-        cp->addChild((SoNode*)createArrow(ARROWLENGTH, ARROWHEADRADIUS));
-        pShapeSep->addChild(cp);
-    }
-#endif
-
-    if (strcmp(prop->getName(),"Points") == 0) {
-        const std::vector<Base::Vector3d>& points = pcConstraint->Points.getValues();
-
-#ifdef USE_MULTIPLE_COPY
-        SoMultipleCopy* cp = static_cast<SoMultipleCopy*>(pShapeSep->getChild(0));
-        cp->matrix.setNum(points.size());
-        SbMatrix* matrices = cp->matrix.startEditing();
-        int idx = 0;
-#else
-        // Redraw all arrows
-        pShapeSep->removeAllChildren();
-#endif
-        // This should always point outside of the solid
-        Base::Vector3d normal = pcConstraint->NormalDirection.getValue();
-
-        // Get default direction (on first call to method)
-        Base::Vector3d forceDirection = pcConstraint->DirectionVector.getValue();
-        if (forceDirection.Length() < Precision::Confusion())
-            forceDirection = normal;
-
-        SbVec3f dir(forceDirection.x, forceDirection.y, forceDirection.z);
-        SbRotation rot(SbVec3f(0,1,0), dir);
-
-        for (std::vector<Base::Vector3d>::const_iterator p = points.begin(); p != points.end(); p++) {
-            SbVec3f base(p->x, p->y, p->z);
-            if (forceDirection.GetAngle(normal) < M_PI_2) // Move arrow so it doesn't disappear inside the solid
-                base = base + dir * ARROWLENGTH;
-#ifdef USE_MULTIPLE_COPY
-            SbMatrix m;
-            m.setTransform(base, rot, SbVec3f(1,1,1));
-            matrices[idx] = m;
-            idx++;
-#else
-            SoSeparator* sep = new SoSeparator();
-            createPlacement(sep, base, rot);
-            createArrow(sep, ARROWLENGTH, ARROWHEADRADIUS);
-            pShapeSep->addChild(sep);
-#endif
+    std::string boundaryType = pcConstraint->BoundaryType.getValueAsString();
+    
+    if (strcmp(prop->getName(),"BoundaryType") == 0)
+    {
+        if (boundaryType == "wall")
+        {
+            FaceColor.setValue(0.0,1.0,1.0);
         }
+        else if (boundaryType == "interface")
+        {
+            FaceColor.setValue(0.0,1.0,0.0);
+        }
+        else if (boundaryType == "freestream")
+        {
+            FaceColor.setValue(1.0,1.0,0.0);
+        }
+        else if(boundaryType == "inlet")
+        {
+            FaceColor.setValue(1.0,0.0,0.0);
+        }
+        else //(boundaryType == "outlet")
+        {
+            FaceColor.setValue(0.0,0.0,1.0);
+        }
+    }
+        
+    if (boundaryType == "inlet" || boundaryType == "outlet"){
+        //Base::Console().Message("\n BoundaryType property in ViewProviderFemFluidBoundary::updateData \n");
+        //Base::Console().Message(boundaryType.c_str());
+    #ifdef USE_MULTIPLE_COPY
+        if (pShapeSep->getNumChildren() == 0) {
+            // Set up the nodes
+            SoMultipleCopy* cp = new SoMultipleCopy();
+            cp->matrix.setNum(0);
+            cp->addChild((SoNode*)createArrow(ARROWLENGTH, ARROWHEADRADIUS));
+            pShapeSep->addChild(cp);
+        }
+    #endif
+
+        if (strcmp(prop->getName(),"Points") == 0) {
+            const std::vector<Base::Vector3d>& points = pcConstraint->Points.getValues();
+
+    #ifdef USE_MULTIPLE_COPY
+            SoMultipleCopy* cp = static_cast<SoMultipleCopy*>(pShapeSep->getChild(0));
+            cp->matrix.setNum(points.size());
+            SbMatrix* matrices = cp->matrix.startEditing();
+            int idx = 0;
+    #else
+            // Redraw all arrows
+            pShapeSep->removeAllChildren();
+    #endif
+            // This should always point outside of the solid
+            Base::Vector3d normal = pcConstraint->NormalDirection.getValue();
+
+            // Get default direction (on first call to method)
+            Base::Vector3d forceDirection = pcConstraint->DirectionVector.getValue();
+            if (forceDirection.Length() < Precision::Confusion())
+                forceDirection = normal;
+
+            SbVec3f dir(forceDirection.x, forceDirection.y, forceDirection.z);
+            SbRotation rot(SbVec3f(0,1,0), dir);
+
+            for (std::vector<Base::Vector3d>::const_iterator p = points.begin(); p != points.end(); p++) {
+                SbVec3f base(p->x, p->y, p->z);
+                if (forceDirection.GetAngle(normal) < M_PI_2) // Move arrow so it doesn't disappear inside the solid
+                    base = base + dir * ARROWLENGTH;
+    #ifdef USE_MULTIPLE_COPY
+                SbMatrix m;
+                m.setTransform(base, rot, SbVec3f(1,1,1));
+                matrices[idx] = m;
+                idx++;
+    #else
+                SoSeparator* sep = new SoSeparator();
+                createPlacement(sep, base, rot);
+                createArrow(sep, ARROWLENGTH, ARROWHEADRADIUS);
+                pShapeSep->addChild(sep);
+    #endif
+            }
+    #ifdef USE_MULTIPLE_COPY
+            cp->matrix.finishEditing();
+    #endif
+        }
+        else if (strcmp(prop->getName(),"DirectionVector") == 0) { // Note: "Reversed" also triggers "DirectionVector"
+            // Re-orient all arrows
+            Base::Vector3d normal = pcConstraint->NormalDirection.getValue();
+            Base::Vector3d forceDirection = pcConstraint->DirectionVector.getValue();
+            if (forceDirection.Length() < Precision::Confusion())
+                forceDirection = normal;
+
+            SbVec3f dir(forceDirection.x, forceDirection.y, forceDirection.z);
+            SbRotation rot(SbVec3f(0,1,0), dir);
+
+            const std::vector<Base::Vector3d>& points = pcConstraint->Points.getValues();
+
+    #ifdef USE_MULTIPLE_COPY
+            SoMultipleCopy* cp = static_cast<SoMultipleCopy*>(pShapeSep->getChild(0));
+            cp->matrix.setNum(points.size());
+            SbMatrix* matrices = cp->matrix.startEditing();
+    #endif
+            int idx = 0;
+
+            for (std::vector<Base::Vector3d>::const_iterator p = points.begin(); p != points.end(); p++) {
+                SbVec3f base(p->x, p->y, p->z);
+                if (forceDirection.GetAngle(normal) < M_PI_2)
+                    base = base + dir * ARROWLENGTH;
+    #ifdef USE_MULTIPLE_COPY
+                SbMatrix m;
+                m.setTransform(base, rot, SbVec3f(1,1,1));
+                matrices[idx] = m;
+    #else
+                SoSeparator* sep = static_cast<SoSeparator*>(pShapeSep->getChild(idx));
+                updatePlacement(sep, 0, base, rot);
+                updateArrow(sep, 2, ARROWLENGTH, ARROWHEADRADIUS);
+    #endif
+                idx++;
+            }
+    #ifdef USE_MULTIPLE_COPY
+            cp->matrix.finishEditing();
+    #endif
+        }
+    }
+    else{ // not inlet or outlet boundary type
+#ifdef USE_MULTIPLE_COPY
+        if (pShapeSep->getNumChildren() == 0) {
+            // Set up the nodes
+            SoMultipleCopy* cp = new SoMultipleCopy();
+            cp->matrix.setNum(0);
+            cp->addChild((SoNode*)createFixed(HEIGHT, WIDTH));
+            pShapeSep->addChild(cp);
+        }
+#endif
+
+        if (strcmp(prop->getName(),"Points") == 0) {
+            const std::vector<Base::Vector3d>& points = pcConstraint->Points.getValues();
+            const std::vector<Base::Vector3d>& normals = pcConstraint->Normals.getValues();
+            if (points.size() != normals.size())
+                return;
+            std::vector<Base::Vector3d>::const_iterator n = normals.begin();
+
+#ifdef USE_MULTIPLE_COPY
+            SoMultipleCopy* cp = static_cast<SoMultipleCopy*>(pShapeSep->getChild(0));
+            cp->matrix.setNum(points.size());
+            SbMatrix* matrices = cp->matrix.startEditing();
+            int idx = 0;
+#else
+            // Note: Points and Normals are always updated together
+            pShapeSep->removeAllChildren();
+#endif
+            for (std::vector<Base::Vector3d>::const_iterator p = points.begin(); p != points.end(); p++) {
+                SbVec3f base(p->x, p->y, p->z);
+                SbVec3f dir(n->x, n->y, n->z);
+                SbRotation rot(SbVec3f(0,-1,0), dir);
+#ifdef USE_MULTIPLE_COPY
+                SbMatrix m;
+                m.setTransform(base, rot, SbVec3f(1,1,1));
+                matrices[idx] = m;
+                idx++;
+#else
+                SoSeparator* sep = new SoSeparator();
+                createPlacement(sep, base, rot);
+                createFixed(sep, HEIGHT, WIDTH);
+                pShapeSep->addChild(sep);
+#endif
+                n++;
+            }
 #ifdef USE_MULTIPLE_COPY
         cp->matrix.finishEditing();
 #endif
-    }
-    else if (strcmp(prop->getName(),"DirectionVector") == 0) { // Note: "Reversed" also triggers "DirectionVector"
-        // Re-orient all arrows
-        Base::Vector3d normal = pcConstraint->NormalDirection.getValue();
-        Base::Vector3d forceDirection = pcConstraint->DirectionVector.getValue();
-        if (forceDirection.Length() < Precision::Confusion())
-            forceDirection = normal;
-
-        SbVec3f dir(forceDirection.x, forceDirection.y, forceDirection.z);
-        SbRotation rot(SbVec3f(0,1,0), dir);
-
-        const std::vector<Base::Vector3d>& points = pcConstraint->Points.getValues();
-
-#ifdef USE_MULTIPLE_COPY
-        SoMultipleCopy* cp = static_cast<SoMultipleCopy*>(pShapeSep->getChild(0));
-        cp->matrix.setNum(points.size());
-        SbMatrix* matrices = cp->matrix.startEditing();
-#endif
-        int idx = 0;
-
-        for (std::vector<Base::Vector3d>::const_iterator p = points.begin(); p != points.end(); p++) {
-            SbVec3f base(p->x, p->y, p->z);
-            if (forceDirection.GetAngle(normal) < M_PI_2)
-                base = base + dir * ARROWLENGTH;
-#ifdef USE_MULTIPLE_COPY
-            SbMatrix m;
-            m.setTransform(base, rot, SbVec3f(1,1,1));
-            matrices[idx] = m;
-#else
-            SoSeparator* sep = static_cast<SoSeparator*>(pShapeSep->getChild(idx));
-            updatePlacement(sep, 0, base, rot);
-            updateArrow(sep, 2, ARROWLENGTH, ARROWHEADRADIUS);
-#endif
-            idx++;
         }
-#ifdef USE_MULTIPLE_COPY
-        cp->matrix.finishEditing();
-#endif
     }
 
     ViewProviderFemConstraint::updateData(prop);
