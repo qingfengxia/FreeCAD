@@ -182,6 +182,28 @@ class _CommandNewCfdAnalysis(FemCommands):
 
     def Activated(self):
         _CreateCaeAnalysis('OpenFOAM')
+        
+
+class _CommandNewMaterial(FemCommands):
+    "the create new FemMaterial command definition"
+    def __init__(self):
+        super(_CommandNewMaterial, self).__init__()
+        self.resources = {'Pixmap': 'fem-material',
+                          'MenuText': QtCore.QT_TRANSLATE_NOOP("Fem_NewMaterial", "New material for any Fem analysis"),
+                          'Accel': "N, A",  # conflict with mechanical analysis?
+                          'ToolTip': QtCore.QT_TRANSLATE_NOOP("Fem_NewMaterial", "Create a new material for anlaysis")}
+        self.is_active = 'with_document'
+
+    def Activated(self):
+        femDoc = FemGui.getActiveAnalysis().Document
+        if FreeCAD.ActiveDocument is not femDoc:
+            FreeCADGui.setActiveDocument(femDoc)
+        FreeCAD.ActiveDocument.openTransaction("Create Material for Fem or Cfd")
+        FreeCADGui.addModule("FemMaterial")
+        FreeCADGui.doCommand("FemMaterial.makeFemMaterial('Fluid')")
+        FreeCADGui.doCommand("App.activeDocument()." + FemGui.getActiveAnalysis().Name + ".Member = App.activeDocument()." + FemGui.getActiveAnalysis().Name + ".Member + [App.ActiveDocument.ActiveObject]")
+        FreeCADGui.doCommand("Gui.activeDocument().setEdit(App.ActiveDocument.ActiveObject.Name)")
+
 
 """
 class _CommandNewMechAnalysis(FemCommands):
@@ -217,6 +239,7 @@ class _CommandAnalysisControl(FemCommands):
 
 if FreeCAD.GuiUp:
     FreeCADGui.addCommand('Fem_NewCfdAnalysis', _CommandNewCfdAnalysis())
+    FreeCADGui.addCommand('Fem_NewMaterial', _CommandNewMaterial())
     #FreeCADGui.addCommand('Fem_NewMechAnalysis', _CommandNewMechAnalysis())
-    #FreeCADGui.addCommand('Fem_AnalysisControl', _CommandAnalysisControl())
+    FreeCADGui.addCommand('Fem_AnalysisControl', _CommandAnalysisControl())
 

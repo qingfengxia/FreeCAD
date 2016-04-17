@@ -27,20 +27,27 @@ Since python object will not be saved, reference to python object's instance wil
 """
 
 
+from __future__ import print_function
+
 def getMesh(analysis_object):
     for i in analysis_object.Member:
         if i.isDerivedFrom("Fem::FemMeshObject"):
             return i
     # python will return None by default, so check None outside
 
+def getMaterial(analysis_object):
+    for i in analysis_object.Member:
+        if i.isDerivedFrom('App::MaterialObjectPython'):
+            return i
 
 def getSolver(analysis_object):
     for i in analysis_object.Member:
-        if i.isDerivedFrom("Fem::FemSolverObject"):
+        if i.isDerivedFrom("Fem::FemSolverObjectPython"):  # Fem::FemSolverObject is C++
             return i
         print("Error: No solver object is found from this analysis_object")
 
 
+# outdated, as if Fem::FemSolverObjectPython can be found after loaded from file
 def getSolverPythonFromAnalysis(analysis_object):
     solver = getSolver(analysis_object)
     if solver is not None:
