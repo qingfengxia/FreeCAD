@@ -20,7 +20,7 @@
 #*                                                                         *
 #***************************************************************************
 
-__title__ = "Classes for New CFD solver"
+__title__ = "ViewProvider for Fem ResultObjectPython"
 __author__ = "Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
@@ -62,7 +62,7 @@ class _ViewProviderFemResult:
     def setEdit(self, vobj, mode):
         #if FemGui.getActiveAnalysis():
         from _TaskPanelShowResult import _TaskPanelShowResult
-        taskd = _TaskPanelCfdResult()
+        taskd = _TaskPanelShowResult()
         taskd.obj = vobj.Object
         FreeCADGui.Control.showDialog(taskd)
         return True
