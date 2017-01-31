@@ -31,6 +31,7 @@ __url__ = "http://www.freecadweb.org"
 
 import os
 import FreeCAD
+import Fem
 
 
 if open.__module__ == '__builtin__':
@@ -54,8 +55,20 @@ def open(filename):
 
 
 def importFemResult(filename):
-    FreeCAD.Console.PrintError("FemResult import is not implemented, actually not necessary\n")
+    result_name_prefix = "Result"
+    # if properties can be added in FemVTKTools importCfdResult(), this file can be used for CFD workbench
+    from FemResult import makeFemResult
+    result_obj = makeFemResult(result_name_prefix)
+    import Fem
+    Fem.readResult(filename, result_obj.Name)  # always create a new femmesh
 
+    filenamebase = '.'.join(filename.split('.')[:-1])  # pattern: filebase_timestamp.vtk
+    ts = filenamebase.split('_')[-1]
+    try:
+        time_step = float(ts)
+    except:
+        time_step = 0.0
+    #Stats has been setup in C++ function FemVTKTools importCfdResult()
 
 def export(objectslist, filename):
     "called when freecad exports a fem result object"
