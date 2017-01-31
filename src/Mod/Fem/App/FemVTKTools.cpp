@@ -110,12 +110,7 @@ template<class TWriter> void writeVTKFile(const char* filename, vtkSmartPointer<
   writer->Write();
 }
 
-/*
-            double scale = 1000;
-            p[0] = p[0]* scale;           // scale back to mm
-            p[1] = p[1]* scale; 
-            p[1] = p[1]* scale; 
-            */
+
 void FemVTKTools::importVTKMesh(vtkSmartPointer<vtkDataSet> dataset, FemMesh* mesh, float scale)
 {
     const vtkIdType nPoints = dataset->GetNumberOfPoints();
@@ -387,7 +382,7 @@ void exportFemMeshCells(vtkSmartPointer<vtkUnstructuredGrid> grid, const SMDS_Vo
 
 }
 
-void FemVTKTools::exportVTKMesh(const FemMesh* mesh, vtkSmartPointer<vtkUnstructuredGrid> grid)
+void FemVTKTools::exportVTKMesh(const FemMesh* mesh, vtkSmartPointer<vtkUnstructuredGrid> grid, float scale)
 {
 
     SMESH_Mesh* smesh = const_cast<SMESH_Mesh*>(mesh->getSMesh());
@@ -401,7 +396,7 @@ void FemVTKTools::exportVTKMesh(const FemMesh* mesh, vtkSmartPointer<vtkUnstruct
     points->SetNumberOfPoints(info.NbNodes());
     for(; aNodeIter->more(); ) {
         const SMDS_MeshNode* node = aNodeIter->next();  // why float, not double?
-        double coords[3] = {double(node->X()), double(node->Y()), double(node->Z())};
+        double coords[3] = {double(node->X()*scale), double(node->Y()*scale), double(node->Z()*scale)};
         points->SetPoint(node->GetID()-1, coords);
     }
     grid->SetPoints(points);
@@ -489,7 +484,7 @@ App::DocumentObject* createObjectByType(const Base::Type type)
 }
 
 
-App::DocumentObject* FemVTKTools::readFluidicResult(const char* filename, App::DocumentObject* res)
+App::DocumentObject* FemVTKTools::readResult(const char* filename, App::DocumentObject* res)
 {
     Base::TimeInfo Start;
     Base::Console().Log("Start: read FemResult with FemMesh from VTK file ======================\n");
@@ -502,6 +497,7 @@ App::DocumentObject* FemVTKTools::readFluidicResult(const char* filename, App::D
     {
         scale = 1000.0;  // convert from meter in length of CFD result file
     }
+
     vtkSmartPointer<vtkDataSet> ds;
     if(f.hasExtension("vtu"))
     {
@@ -531,7 +527,7 @@ App::DocumentObject* FemVTKTools::readFluidicResult(const char* filename, App::D
     else
     {
         Base::Console().Log("FemResultObject pointer is NULL, trying to get the active object\n");
-        if (obj->getTypeId() == Base::Type::fromName("Fem::FemResultObjectPython"))
+        if(obj->getTypeId() == Base::Type::fromName("Fem::FemResultObjectPython"))
             result = obj;
         else
         {
@@ -546,10 +542,23 @@ App::DocumentObject* FemVTKTools::readFluidicResult(const char* filename, App::D
     static_cast<PropertyFemMesh*>(mesh->getPropertyByName("FemMesh"))->setValue(*fmesh);
     static_cast<App::PropertyLink*>(result->getPropertyByName("Mesh"))->setValue(mesh);
     // PropertyLink is the property type to store DocumentObject pointer
-
-    importFluidicResult(dataset, result);
+    
+    vtkSmartPointer<vtkPointData> pd = dataset->GetPointData();
+    vtkSmartPointer<vtkDataArray> displ = pd->GetArray("Displacement");  // name in vtk file
+    vtkSmartPointer<vtkDataArray> vel = pd->GetArray("Velocity");
+    if(vel)
+    {
+        importFluidicResult(dataset, result);
+    }
+    else if (displ)
+    {
+        importMechanicalResult(dataset, result);
+    }
+    else
+    {
+        Base::Console().Error("FemResult type, fluidic or mechanical can not be detected\n");
+    }
     pcDoc->recompute();
-
     Base::Console().Log("    %f: Done \n", Base::TimeInfo::diffTimeF(Start, Base::TimeInfo()));
 
     return result;
@@ -565,13 +574,21 @@ void FemVTKTools::writeResult(const char* filename, const App::DocumentObject* r
             Base::Console().Message("No active document is found thus do nothing and return\n");
             return;
         }
-        res = pcDoc->getActiveObject(); //type checking
+        res = pcDoc->getActiveObject(); //type checking is done by caller
     }
     if(!res) {
         Base::Console().Error("Result object pointer is invalid and it is not active oject");
         return;
     }
 
+    auto hGrp = App::GetApplication().GetParameterGroupByPath("User parameter:BaseApp/Preferences/Units");
+    int unitSchema = hGrp->GetInt("UserSchema",0);
+    float scale = 1.0;
+    if(unitSchema == 0)  // standard mm
+    {
+        scale = 0.001;  // convert from mm in FreeCAD to SI length in result file
+    }
+    
     Base::TimeInfo Start;
     Base::Console().Log("Start: write FemResult or CfdResult to VTK unstructuredGrid dataset =======\n");
     Base::FileInfo f(filename);
@@ -579,7 +596,7 @@ void FemVTKTools::writeResult(const char* filename, const App::DocumentObject* r
     vtkSmartPointer<vtkUnstructuredGrid> grid = vtkSmartPointer<vtkUnstructuredGrid>::New();
     App::DocumentObject* mesh = static_cast<App::PropertyLink*>(res->getPropertyByName("Mesh"))->getValue();
     const FemMesh& fmesh = static_cast<PropertyFemMesh*>(mesh->getPropertyByName("FemMesh"))->getValue();
-    FemVTKTools::exportVTKMesh(&fmesh, grid);
+    FemVTKTools::exportVTKMesh(&fmesh, grid, scale);
 
     if(res->getPropertyByName("Velocity")){
         FemVTKTools::exportFluidicResult(res, grid);
@@ -605,24 +622,54 @@ void FemVTKTools::writeResult(const char* filename, const App::DocumentObject* r
     Base::Console().Log("    %f: Done \n",Base::TimeInfo::diffTimeF(Start, Base::TimeInfo()));
 }
 
-
+// it is an internal utility func to avoid code duplication
+void calcStat(vtkSmartPointer<vtkDataArray>  vel, std::vector<double>& stats, const long nPoints) {
+        double vmin=1.0e100, vmean=0.0, vmax=-1.0e100;
+        //stat of Vx, Vy, Vz is not necessary
+        double vmins[3] = {1.0e100, 1.0e100, 1.0e100};  // set up a very big positive float then reduce it
+        double vmeans[3] = {0.0, 0.0, 0.0}; 
+        double vmaxs[3] = {-1.0e100, -1.0e100, -1.0e100};
+        for(vtkIdType i=0; i<nPoints; ++i) {
+            double *p = vel->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)
+            double vmag = std::sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);
+            for(int ii=0; ii<3; ii++) {
+                vmeans[ii] += p[ii];
+                if(p[ii] > vmaxs[ii]) vmaxs[ii] = p[ii]; 
+                if(p[ii] < vmins[ii]) vmins[ii] = p[ii];                
+            }
+            vmean += vmag;
+            if(vmag > vmax) vmax = vmag;
+            if(vmag < vmin) vmin = vmag;
+        }
+        
+        for(int ii=0; ii<3; ii++) {
+            stats[ii*3] = vmins[ii];
+            stats[ii*3 + 2] = vmaxs[ii];
+            stats[ii*3 + 1] = vmeans[ii]/nPoints;
+        }
+        int index = 3; // velocity mag or displacement mag
+        stats[index*3] = vmin;
+        stats[index*3 + 2] = vmax;
+        stats[index*3 + 1] = vmean/nPoints;
+}
+    
 void FemVTKTools::importFluidicResult(vtkSmartPointer<vtkDataSet> dataset, App::DocumentObject* res) {
 
     // velocity and pressure are essential, Temperature is optional, so are turbulence related variables
     std::map<const char*, const char*> vars;  // varable name defined in openfoam -> property defined in CfdResult.py
-    vars["Pressure"] = "p";
     vars["Velocity"] = "U";
+    vars["Pressure"] = "p";
     vars["Temperature"] = "T";
-    vars["TurbulenceThermalDiffusivity"] = "alphat";
-    vars["TurbulenceViscosity"] = "nut";
     vars["TurbulenceEnergy"] = "k";
+    vars["TurbulenceViscosity"] = "nut";
     vars["TurbulenceDissipationRate"] = "epsilon";
     vars["TurbulenceSpecificDissipation"] = "omega";
+    vars["TurbulenceThermalDiffusivity"] = "alphat";
 
     const int max_var_index = 11;
     std::vector<double> stats(3*max_var_index, 0.0);
 
-    std::map<const char*, int> varids; // must agree with definition in  _TaskPanelCfdResult.py
+    std::map<const char*, int> varids; // must agree with definition in Stat calc  Cfd/_TaskPanelCfdResult.py
     varids["Ux"] = 0;
     varids["Uy"] = 1;
     varids["Uz"] = 2;
@@ -632,8 +679,8 @@ void FemVTKTools::importFluidicResult(vtkSmartPointer<vtkDataSet> dataset, App::
     varids["TurbulenceEnergy"] = 6;
     varids["TurbulenceViscosity"] = 7;
     varids["TurbulenceDissipationRate"] = 8;
-    //varids["TurbulenceThermalDiffusivity"] = 9;
-    //varids["TurbulenceSpecificDissipation"] = 10;
+    //varids["TurbulenceSpecificDissipation"] = 9;
+    //varids["TurbulenceThermalDiffusivity"] = 10;
 
     double ts = 0.0;  // t=0.0 for static simulation
     static_cast<App::PropertyFloat*>(res->getPropertyByName("Time"))->setValue(ts);
@@ -650,37 +697,14 @@ void FemVTKTools::importFluidicResult(vtkSmartPointer<vtkDataSet> dataset, App::
     vtkSmartPointer<vtkDataArray> vel = pd->GetArray(vars["Velocity"]);
     if(nPoints && vel && vel->GetNumberOfComponents() == 3) {
         std::vector<Base::Vector3d> vec(nPoints);
-        double vmin=1.0e100, vmean=0.0, vmax=0.0;
-        //stat of Vx, Vy, Vz is not necessary
-        double vmins[3] = {0.0, 0.0, 0.0};
-        double vmeans[3] = {0.0, 0.0, 0.0}; 
-        double vmaxs[3] = {0.0, 0.0, 0.0};
         for(vtkIdType i=0; i<nPoints; ++i) {
-            double *p = vel->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)
-            double vmag = std::sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);
-            for(int ii=0; ii<3; ii++) {
-                vmeans[ii] += p[ii];
-                if(p[ii] > vmaxs[ii]) vmaxs[ii] = p[ii]; 
-                if(p[ii] < vmins[ii]) vmins[ii] = p[ii];                
-            }
-            vmean += vmag;
-            if(vmag > vmax) vmax = vmag;
-            if(vmag < vmin) vmin = vmag;
-            
+            double *p = vel->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)            
             vec[i] = (Base::Vector3d(p[0], p[1], p[2]));
             nodeIds[i] = i;
         }
         
-        for(int ii=0; ii<3; ii++) {
-            stats[ii*3] = vmins[ii];
-            stats[ii*3 + 2] = vmaxs[ii];
-            stats[ii*3 + 1] = vmeans[ii]/nPoints;
-        }
-        int index = varids["Umag"];
-        stats[index*3] = vmin;
-        stats[index*3 + 2] = vmax;
-        stats[index*3 + 1] = vmean/nPoints;
-
+        calcStat(vel, stats, nPoints);
+        
         App::PropertyVectorList* velocity = static_cast<App::PropertyVectorList*>(res->getPropertyByName("Velocity"));
         if(velocity) {
             //PropertyVectorList will not show up in PropertyEditor
@@ -707,10 +731,9 @@ void FemVTKTools::importFluidicResult(vtkSmartPointer<vtkDataSet> dataset, App::
                 continue;
             }
 
-            double vmin=1.0e100, vmean=0.0, vmax=0.0;
+            double vmin=1.0e100, vmean=0.0, vmax=-1.0e100;
             std::vector<double> values(nPoints, 0.0);
-            for(vtkIdType i = 0; i < vec->GetNumberOfTuples(); i++)
-            {
+            for(vtkIdType i = 0; i < vec->GetNumberOfTuples(); i++) {
                 double v = *(vec->GetTuple(i));
                 values[i] = v;
                 vmean += v;
@@ -719,10 +742,12 @@ void FemVTKTools::importFluidicResult(vtkSmartPointer<vtkDataSet> dataset, App::
             }
             field->setValues(values);
 
-            int index = varids[kv.first];
-            stats[index*3] = vmin;
-            stats[index*3 + 2] = vmax;
-            stats[index*3 + 1] = vmean/nPoints;
+            if(varids.find(kv.first) != varids.end()) {
+                int index = varids[kv.first];
+                stats[index*3] = vmin;
+                stats[index*3 + 2] = vmax;
+                stats[index*3 + 1] = vmean/nPoints;
+            }
 
             Base::Console().Message("field  \"%s\" has been loaded \n", kv.first);
         }
@@ -730,11 +755,118 @@ void FemVTKTools::importFluidicResult(vtkSmartPointer<vtkDataSet> dataset, App::
     static_cast<App::PropertyFloatList*>(res->getPropertyByName("Stats"))->setValues(stats);
 }
 
-/*
-void FemVTKTools::importMechanicalResult(const vtkDataSet* grid, App::DocumentObject* res) {
-    // to be implemented later by FemWorkbench developer
+
+void FemVTKTools::importMechanicalResult(vtkSmartPointer<vtkDataSet> dataset, App::DocumentObject* res) {
+    // field names are defined in this cpp, exportMechanicalResult()
+    // DisplaceVectors are essential, Temperature and other is optional
+    std::map<const char*, const char*> vectors;  // property defined in MechanicalResult.py -> variable name in vtk
+    vectors["DisplacementVectors"] = "Displacement";
+    vectors["StrainVectors"] = "Strain vectors";
+    vectors["StressVectors"] = "Stress vectors";
+    std::map<const char*, const char*> scalers;  // App::FloatListProperty name -> vtk name 
+    scalers["UserDefined"] = "User Defined Results";
+    scalers["Temperature"] = "Temperature";
+    scalers["PrincipalMax"] = "Maximum Principal stress";
+    scalers["PrincipalMed"] = "Median Principal stress";
+    scalers["PrincipalMin"] = "Minimum Principal stress";
+    scalers["MaxShear"] = "Max shear stress (Tresca)";
+    scalers["StressValues"] = "Von Mises stress";
+    //scalers["DisplacementLengths"] = "";  // not yet exported in exportMechanicalResult()
+    
+    const int max_var_index = 11;
+    std::vector<double> stats(3*max_var_index, 0.0);
+    
+    std::map<const char*, int> varids;
+    // id sequence must agree with definition in get_result_stats() of  Fem/_TaskPanelShowResult.py
+    varids["U1"] = 0;   // U1, displacement x axis
+    varids["U2"] = 1;
+    varids["U3"] = 2;
+    varids["Uabs"] = 3;
+    varids["StressValues"] = 4;  // Sabs
+    varids["PrincipalMax"] = 5;  // MaxPrin
+    varids["PrincipalMed"] = 6;  // MidPrin
+    varids["PrincipalMin"] = 7;  // MinPrin
+    varids["MaxShear"] = 8; //
+    
+    double ts = 0.0;  // t=0.0 for static simulation
+    static_cast<App::PropertyFloat*>(res->getPropertyByName("Time"))->setValue(ts);
+    
+    vtkSmartPointer<vtkPointData> pd = dataset->GetPointData();
+    const vtkIdType nPoints = dataset->GetNumberOfPoints();
+    if(pd->GetNumberOfArrays() == 0) {
+        Base::Console().Error("No point data array is found in vtk data set, do nothin\n");
+        // if pointData is empty, data may be in cellDate, cellData -> pointData interpolation is possible in VTK
+        return;
+    }
+
+    vtkSmartPointer<vtkDataArray> displ = pd->GetArray(vectors["DisplacementVectors"]);  // a vector must exist
+    if(nPoints && displ) {
+        int dim = 3;
+        for(auto const& kv: vectors){
+            vtkDataArray* vector_field = vtkDataArray::SafeDownCast(pd->GetArray(kv.second));
+            if(vector_field && vector_field->GetNumberOfComponents() == dim) {
+                App::PropertyVectorList* vector_list = static_cast<App::PropertyVectorList*>(res->getPropertyByName(kv.first));
+                if(vector_list) {
+                    std::vector<Base::Vector3d> vec(nPoints);
+                    for(vtkIdType i=0; i<nPoints; ++i) {
+                        double *p = vector_field->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)
+                        vec[i] = (Base::Vector3d(p[0], p[1], p[2]));
+                    }
+                    if (kv.first == std::string("DisplacementVectors"))
+                        calcStat(vector_field, stats, nPoints);
+                    //PropertyVectorList will not show up in PropertyEditor
+                    vector_list->setValues(vec);
+                    Base::Console().Message("VectorList %s has been loaded \n", kv.first);
+                }
+                else {
+                    Base::Console().Error("static_cast<App::PropertyVectorList*>((res->getPropertyByName(\"%s\")) failed \n", kv.first);
+                    continue;           
+                }
+                
+            }
+            // for displacement calc min and max
+            std::vector<long> nodeIds(nPoints);
+            for(vtkIdType i=0; i<nPoints; ++i) {
+                nodeIds[i] = i;
+            }
+            static_cast<App::PropertyIntegerList*>(res->getPropertyByName("NodeNumbers"))->setValues(nodeIds);
+        }
+        for(auto const& kv: scalers){
+            vtkDataArray* var = vtkDataArray::SafeDownCast(pd->GetArray(kv.second));
+            if(nPoints && var && var->GetNumberOfComponents() == 1) {  
+                App::PropertyFloatList* field = static_cast<App::PropertyFloatList*>(res->getPropertyByName(kv.first));
+                if (!field) {
+                    Base::Console().Error("static_cast<App::PropertyFloatList*>((res->getPropertyByName(\"%s\")) failed \n", kv.first);
+                    continue;
+                }
+
+                double vmin=1.0e100, vmean=0.0, vmax=-1.0e100;
+                std::vector<double> values(nPoints, 0.0);
+                for(vtkIdType i = 0; i < var->GetNumberOfTuples(); i++)
+                {
+                    double v = *(var->GetTuple(i));
+                    values[i] = v;
+                    vmean += v;
+                    if(v > vmax) vmax = v;
+                    if(v < vmin) vmin = v;
+                }
+                field->setValues(values);
+
+                if (varids.find(kv.first) != varids.end()) {
+                    int index = varids[kv.first];  // is that name existent?
+                    stats[index*3] = vmin;
+                    stats[index*3 + 2] = vmax;
+                    stats[index*3 + 1] = vmean/nPoints;
+                }
+
+                Base::Console().Message("field  \"%s\" has been loaded \n", kv.first);
+            }
+        }
+        static_cast<App::PropertyFloatList*>(res->getPropertyByName("Stats"))->setValues(stats);
+    }
+    
 }
- * */
+
 
 void FemVTKTools::exportFluidicResult(const App::DocumentObject* res, vtkSmartPointer<vtkDataSet> grid) {
     if(!res->getPropertyByName("Velocity")){
@@ -775,6 +907,7 @@ void FemVTKTools::exportFluidicResult(const App::DocumentObject* res, vtkSmartPo
             const std::vector<double>& vec = field->getValues();
             vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
             data->SetNumberOfValues(vec.size());
+            data->SetNumberOfComponents(3);
             data->SetName(var);
 
             for(size_t i=0; i<vec.size(); ++i)
@@ -787,131 +920,58 @@ void FemVTKTools::exportFluidicResult(const App::DocumentObject* res, vtkSmartPo
 
 
 void FemVTKTools::exportMechanicalResult(const App::DocumentObject* obj, vtkSmartPointer<vtkDataSet> grid) {
-    // code redundance can be avoided by property inspection, consider refactoring
     const FemResultObject* res = static_cast<const FemResultObject*>(obj);
-    if(!res->StressValues.getValues().empty()) {
-        const std::vector<double>& vec = res->StressValues.getValues();
-     if (vec.size()>1) { 
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfValues(vec.size());
-        data->SetName("Von Mises stress");
-
-        for(size_t i=0; i<vec.size(); ++i)
-            data->SetValue(i, vec[i]);
-
-        grid->GetPointData()->AddArray(data);
-     }}
-
-    if(!res->MaxShear.getValues().empty()) {
-        const std::vector<double>& vec = res->MaxShear.getValues();
-      if (vec.size()>1) {       
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfValues(vec.size());
-        data->SetName("Max shear stress (Tresca)");
-
-        for(size_t i=0; i<vec.size(); ++i)
-            data->SetValue(i, vec[i]);
-
-        grid->GetPointData()->AddArray(data);
-      }}
-
-    if(!res->PrincipalMax.getValues().empty()) {
-        const std::vector<double>& vec = res->PrincipalMax.getValues();
-      if (vec.size()>1) { 
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfValues(vec.size());
-        data->SetName("Maximum Principal stress");
-
-        for(size_t i=0; i<vec.size(); ++i)
-            data->SetValue(i, vec[i]);
-
-        grid->GetPointData()->AddArray(data);
-      }}
-
-    if(!res->PrincipalMax.getValues().empty()) {
-        const std::vector<double>& vec = res->PrincipalMin.getValues();
-      if (vec.size()>1) { 
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfValues(vec.size());
-        data->SetName("Minimum Principal stress");
-
-        for(size_t i=0; i<vec.size(); ++i)
-            data->SetValue(i, vec[i]);
-
-        grid->GetPointData()->AddArray(data);
-      }}
-
-    if (!res->Temperature.getValues().empty())  {  
-        const std::vector<double>& vec = res->Temperature.getValues();
-      if (vec.size()>1) {     
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfValues(vec.size());
-        data->SetName("Temperature");
-
-        for(size_t i=0; i<vec.size(); ++i)
-            data->SetValue(i, vec[i]);
-
-        grid->GetPointData()->AddArray(data);
-      }}
-
-    if (!res->UserDefined.getValues().empty())  {
-        const std::vector<double>& vec = res->UserDefined.getValues();
-      if (vec.size()>1) { 
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfValues(vec.size());
-        data->SetName("User Defined Results");
-
-        for(size_t i=0; i<vec.size(); ++i)
-            data->SetValue(i, vec[i]);
-
-        grid->GetPointData()->AddArray(data);
-      }}
-
-
-    if(!res->DisplacementVectors.getValues().empty()) {
-        const std::vector<Base::Vector3d>& vec = res->DisplacementVectors.getValues();
-      if (vec.size()>1) { 
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfComponents(3);
-        data->SetName("Displacement");
-
-        for(std::vector<Base::Vector3d>::const_iterator it=vec.begin(); it!=vec.end(); ++it) {
-            double tuple[] = {it->x, it->y, it->z};
-            data->InsertNextTuple(tuple);
+    std::map<const char*, const char*> vectors;  // property defined in MechanicalResult.py -> variable name in vtk
+    vectors["DisplacementVectors"] = "Displacement";
+    vectors["StrainVectors"] = "Strain vectors";
+    vectors["StressVectors"] = "Stress vectors";
+    std::map<const char*, const char*> scalers;  // App::FloatListProperty name -> vtk name 
+    scalers["UserDefined"] = "User Defined Results";
+    scalers["Temperature"] = "Temperature";
+    scalers["PrincipalMax"] = "Maximum Principal stress";
+    scalers["PrincipalMed"] = "Median Principal stress";
+    scalers["PrincipalMin"] = "Minimum Principal stress";
+    scalers["MaxShear"] = "Max shear stress (Tresca)";
+    scalers["StressValues"] = "Von Mises stress";
+    //scalers["DisplacementLengths"] = "";  // not yet exported in exportMechanicalResult()
+    for (auto const& kv: vectors) {
+        const int dim = 3;
+        App::PropertyVectorList* field = nullptr;
+        if (res->getPropertyByName(kv.first))
+            field = static_cast<App::PropertyVectorList*>(res->getPropertyByName(kv.first));
+        if(!field && !field->getValues().empty()) {
+            const std::vector<Base::Vector3d>& vel = field->getValues();
+            vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
+            data->SetNumberOfValues(vel.size());
+            data->SetNumberOfComponents(dim);
+            data->SetName(kv.second);
+            
+            for(std::vector<Base::Vector3d>::const_iterator it=vel.begin(); it!=vel.end(); ++it) {
+                double tuple[] = {it->x, it->y, it->z};
+                data->InsertNextTuple(tuple);
+            }
+            grid->GetPointData()->AddArray(data);
+            Base::Console().Message("Info: vector field %s exported as '%s'\n", kv.first, kv.second);
         }
+    }
 
-        grid->GetPointData()->AddArray(data);
-      }}
+    for (auto const& kv: scalers) {
+        App::PropertyFloatList* field = nullptr;
+        if (res->getPropertyByName(kv.first))
+            field = static_cast<App::PropertyFloatList*>(res->getPropertyByName(kv.first));
+        if(!field && !field->getValues().empty()) {
+            const std::vector<double>& vec = field->getValues();
+            vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
+            data->SetNumberOfValues(vec.size());
+            data->SetName(kv.second);
 
-   if(!res->StressVectors.getValues().empty()) {
-        const std::vector<Base::Vector3d>& vec = res->StressVectors.getValues();
-      if (vec.size()>1) { 
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfComponents(3);
-        data->SetName("Stress Vectors");
+            for(size_t i=0; i<vec.size(); ++i)
+                data->SetValue(i, vec[i]);
 
-        for(std::vector<Base::Vector3d>::const_iterator it=vec.begin(); it!=vec.end(); ++it) {
-            double tuple[] = {it->x, it->y , it->z};
-            data->InsertNextTuple(tuple);
+            grid->GetPointData()->AddArray(data);
+            Base::Console().Message("Info: scaler field %s exported as '%s'\n", kv.first, kv.second);
         }
-
-        grid->GetPointData()->AddArray(data);
-      }}
-
-   if(!res->StrainVectors.getValues().empty()) {
-        const std::vector<Base::Vector3d>& vec = res->StrainVectors.getValues();
-      if (vec.size()>1) { 
-        vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-        data->SetNumberOfComponents(3);
-        data->SetName("Strain Vectors");
-
-        for(std::vector<Base::Vector3d>::const_iterator it=vec.begin(); it!=vec.end(); ++it) {
-            double tuple[] = {it->x, it->y, it->z};
-            data->InsertNextTuple(tuple);
-        }
-
-        grid->GetPointData()->AddArray(data);
-      }}
+    }
 
 }
 
