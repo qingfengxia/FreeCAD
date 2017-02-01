@@ -57,8 +57,8 @@ def open(filename):
 def importFemResult(filename):
     result_name_prefix = "Result"
     # if properties can be added in FemVTKTools importCfdResult(), this file can be used for CFD workbench
-    from FemResult import makeFemResult
-    result_obj = makeFemResult(result_name_prefix)
+    from FemMechanicalResult import makeFemMechanicalResult
+    result_obj = makeFemMechanicalResult(result_name_prefix)
     import Fem
     Fem.readResult(filename, result_obj.Name)  # always create a new femmesh
 
