@@ -320,6 +320,7 @@ class _TaskPanelShowResult:
 
             if hasattr(self.result_object, "Mesh") and self.result_object.Mesh:
                 self.MeshObject = self.result_object.Mesh
+                self.MeshObject.ViewObject.Visibility = True
                 if (self.MeshObject.FemMesh.NodeCount == len(self.result_object.NodeNumbers)):
                     self.suitable_results = True
                 else:
