@@ -23,7 +23,7 @@
 # ***************************************************************************/
 
 __title__ = "FreeCAD Result import and export VTK file library"
-__author__ = "Qingfeng Xia"
+__author__ = "Qingfeng Xia, Bernd Hahnebach"
 __url__ = "http://www.freecadweb.org"
 
 ## @package importVTKResults
@@ -45,7 +45,7 @@ def insert(filename, docname):
     except NameError:
         doc = FreeCAD.newDocument(docname)
     FreeCAD.ActiveDocument = doc
-    importFemResult(filename)
+    importVTK(filename)
 
 
 def open(filename):
@@ -54,13 +54,24 @@ def open(filename):
     insert(filename, docname)
 
 
-def importFemResult(filename):
-    result_name_prefix = "Result"
+def importVTK(filename, analysis=None, result_name_prefix=None):
+    if result_name_prefix is None:
+        result_name_prefix = ''
+    if analysis is None:
+        analysis_name = os.path.splitext(os.path.basename(filename))[0]
+        import FemAnalysis
+        analysis_object = FemAnalysis.makeFemAnalysis('Analysis')
+        analysis_object.Label = analysis_name
+    else:
+        analysis_object = analysis
+
     # if properties can be added in FemVTKTools importCfdResult(), this file can be used for CFD workbench
     from FemMechanicalResult import makeFemMechanicalResult
-    result_obj = makeFemMechanicalResult(result_name_prefix)
-    import Fem
-    Fem.readResult(filename, result_obj.Name)  # always create a new femmesh
+    results_name = result_name_prefix + 'results'
+    result_obj = makeFemMechanicalResult(results_name)
+    Fem.readResult(filename, result_obj.Name)  # readResult always creates a new femmesh named ResultMesh
+    analysis_object.Member = analysis_object.Member + [result_obj]
+    # FIXME move the ResultMesh in the analysis
 
     filenamebase = '.'.join(filename.split('.')[:-1])  # pattern: filebase_timestamp.vtk
     ts = filenamebase.split('_')[-1]
@@ -68,7 +79,8 @@ def importFemResult(filename):
         time_step = float(ts)
     except:
         time_step = 0.0
-    #Stats has been setup in C++ function FemVTKTools importCfdResult()
+    # Stats has been setup in C++ function FemVTKTools importCfdResult()
+
 
 def export(objectslist, filename):
     "called when freecad exports a fem result object"
@@ -79,5 +91,4 @@ def export(objectslist, filename):
     if not obj.isDerivedFrom("Fem::FemResultObject"):
         FreeCAD.Console.PrintError("object selcted is not FemResultObject.\n")
         return
-    import Fem
     Fem.writeResult(filename, obj)
