@@ -26,7 +26,7 @@ __url__ = "http://www.freecadweb.org"
 
 import FreeCAD
 import FreeCADGui
-import FemGui
+
 
 class _ViewProviderFemMechanicalResult:
     """A View Provider for the FemResultObject Python dervied FemResult class
@@ -48,7 +48,7 @@ class _ViewProviderFemMechanicalResult:
 
     def onChanged(self, vobj, prop):
         return
-        
+
     def doubleClicked(self, vobj):
         if FreeCADGui.activeWorkbench().name() != 'FemWorkbench':
             FreeCADGui.activateWorkbench("FemWorkbench")
@@ -58,11 +58,11 @@ class _ViewProviderFemMechanicalResult:
         else:
             FreeCAD.Console.PrintError('Active Task Dialog found! Please close this one first!\n')
         return True
-        
+
     def setEdit(self, vobj, mode):
         #if FemGui.getActiveAnalysis():
-        from _TaskPanelShowResult import _TaskPanelShowResult
-        taskd = _TaskPanelShowResult()
+        import _TaskPanelShowResult
+        taskd = _TaskPanelShowResult._TaskPanelShowResult(self.Object)
         taskd.obj = vobj.Object
         FreeCADGui.Control.showDialog(taskd)
         return True
