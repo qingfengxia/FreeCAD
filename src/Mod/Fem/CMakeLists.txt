@@ -36,6 +36,9 @@ INSTALL(
         _CommandRunSolver.py
         _CommandControlSolver.py
 
+        FemMechanicalResult.py
+        _FemMechanicalResult.py
+        _ViewProviderFemMechanicalResult.py
         _CommandShowResult.py
         _TaskPanelShowResult.py
         TaskPanelShowResult.ui
@@ -103,8 +106,8 @@ INSTALL(
 
         # solver CalculiX ccx
         importInpMesh.py
-        ccxDatReader.py
-        ccxFrdReader.py
+        importCcxDatResults.py
+        importCcxFrdResults.py
         FemInputWriterCcx.py
         FemToolsCcx.py
         FemSolverCalculix.py
@@ -116,7 +119,7 @@ INSTALL(
 
         # solver Z88
         importZ88Mesh.py
-        importZ88Results.py
+        importZ88O2Results.py
         FemInputWriterZ88.py
         FemToolsZ88.py
         FemSolverZ88.py
