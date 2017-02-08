@@ -626,14 +626,15 @@ void FemVTKTools::writeResult(const char* filename, const App::DocumentObject* r
 }
 
 // it is an internal utility func to avoid code duplication
-void _calcStat(vtkSmartPointer<vtkDataArray>  vel, std::vector<double>& stats, const long nPoints) {
+void _calcStat(const std::vector<Base::Vector3d>& vel, std::vector<double>& stats) {
+        vtkIdType nPoints = vel.size();
         double vmin=1.0e100, vmean=0.0, vmax=-1.0e100;
         //stat of Vx, Vy, Vz is not necessary
         double vmins[3] = {1.0e100, 1.0e100, 1.0e100};  // set up a very big positive float then reduce it
         double vmeans[3] = {0.0, 0.0, 0.0}; 
         double vmaxs[3] = {-1.0e100, -1.0e100, -1.0e100};
-        for(vtkIdType i=0; i<nPoints; ++i) {
-            double *p = vel->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)
+        for(std::vector<Base::Vector3d>::const_iterator it=vel.begin(); it!=vel.end(); ++it) {
+            double p[] = {it->x, it->y, it->z};
             double vmag = std::sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]);
             for(int ii=0; ii<3; ii++) {
                 vmeans[ii] += p[ii];
@@ -674,6 +675,14 @@ void _importResult(const vtkSmartPointer<vtkDataSet> dataset, App::DocumentObjec
         return;
     }
 
+    auto hGrp = App::GetApplication().GetParameterGroupByPath("User parameter:BaseApp/Preferences/Units");
+    int unitSchema = hGrp->GetInt("UserSchema",0);
+    float scale = 1.0;
+    if(unitSchema == 0)  // standard mm
+    {
+        scale = 1000;  // convert from SI length in result file to mm in FreeCAD
+    }
+
     const char* essential_var = vectors.at(essential_property).c_str();
     vtkSmartPointer<vtkDataArray> essential_array = pd->GetArray(essential_var);  // a vector must exist
     if(nPoints && essential_array) {
@@ -686,12 +695,20 @@ void _importResult(const vtkSmartPointer<vtkDataSet> dataset, App::DocumentObjec
                 App::PropertyVectorList* vector_list = static_cast<App::PropertyVectorList*>(res->getPropertyByName(kv.first.c_str()));
                 if(vector_list) {
                     std::vector<Base::Vector3d> vec(nPoints);
-                    for(vtkIdType i=0; i<nPoints; ++i) {
-                        double *p = vector_field->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)
-                        vec[i] = (Base::Vector3d(p[0], p[1], p[2]));
+                    if(kv.first == std::string(essential_property)) {  // is there any other var need to scale?
+                        for(vtkIdType i=0; i<nPoints; ++i) {
+                            double *p = vector_field->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)
+                            vec[i] = (Base::Vector3d(p[0]*scale, p[1]*scale, p[2]*scale));
+                        }
+                    }
+                    else{
+                        for(vtkIdType i=0; i<nPoints; ++i) {
+                            double *p = vector_field->GetTuple(i); // both vtkFloatArray and vtkDoubleArray return double* for GetTuple(i)
+                            vec[i] = (Base::Vector3d(p[0], p[1], p[2]));
+                        }
                     }
                     if (kv.first == std::string(essential_property))  // for displacement or velocity calc min and max of each components
-                        _calcStat(vector_field, stats, nPoints);
+                        _calcStat(vec, stats);
                     //PropertyVectorList will not show up in PropertyEditor
                     vector_list->setValues(vec);
                     Base::Console().Message("PropertyVectorList %s has been loaded \n", kv.first.c_str());
@@ -704,7 +721,7 @@ void _importResult(const vtkSmartPointer<vtkDataSet> dataset, App::DocumentObjec
 
             std::vector<long> nodeIds(nPoints);
             for(vtkIdType i=0; i<nPoints; ++i) {
-                nodeIds[i] = i;
+                nodeIds[i] = i+1;
             }
             static_cast<App::PropertyIntegerList*>(res->getPropertyByName("NodeNumbers"))->setValues(nodeIds);
         }
@@ -750,10 +767,20 @@ void _importResult(const vtkSmartPointer<vtkDataSet> dataset, App::DocumentObjec
 }
 
 void _exportResult(const App::DocumentObject* result, vtkSmartPointer<vtkDataSet> grid, 
-                             const std::map<std::string, std::string>& vectors, const std::map<std::string, std::string> scalers){
+                             const std::map<std::string, std::string>& vectors, const std::map<std::string, std::string> scalers,
+                             const std::string& essential_property){
 
     const Fem::FemResultObject* res = static_cast<const Fem::FemResultObject*>(result);
 
+    auto hGrp = App::GetApplication().GetParameterGroupByPath("User parameter:BaseApp/Preferences/Units");
+    int unitSchema = hGrp->GetInt("UserSchema",0);
+    float scale = 1.0;
+    if(unitSchema == 0)  // standard mm
+    {
+        scale = 0.001;  // convert from mm in FreeCAD to SI length in result file
+    }
+
+    const vtkIdType nPoints = grid->GetNumberOfPoints();
     for (auto const& kv: vectors) {
         const int dim = 3;  //Fixme, detect dim
         App::PropertyVectorList* field = nullptr;
@@ -761,16 +788,31 @@ void _exportResult(const App::DocumentObject* result, vtkSmartPointer<vtkDataSet
             field = static_cast<App::PropertyVectorList*>(res->getPropertyByName(kv.first.c_str()));
         else
             Base::Console().Error("PropertyVectorList %s not found \n", kv.first.c_str());
-        if(field && !field->getValues().empty()) {
+        if(field && field->getValues().size()>1) {  // FreeCAD property list 
             const std::vector<Base::Vector3d>& vel = field->getValues();
             vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
-            //data->SetNumberOfValues(vel.size());
+            if(nPoints != field->getSize())
+                Base::Console().Error("PropertyVectorList->getSize() = %d, not equal to mesh point number \n", field->getSize());
             data->SetNumberOfComponents(dim);
+            data->SetNumberOfTuples(vel.size());
             data->SetName(kv.second.c_str());  // kv.first may be a better name, without space
-            
-            for(std::vector<Base::Vector3d>::const_iterator it=vel.begin(); it!=vel.end(); ++it) {
-                double tuple[] = {it->x, it->y, it->z};
-                data->InsertNextTuple(tuple);
+
+            vtkIdType i=0;
+            if(kv.first == essential_property) {
+                for(std::vector<Base::Vector3d>::const_iterator it=vel.begin(); it!=vel.end(); ++it) {
+                    Base::Vector3d v = vel.at(i);
+                    double tuple[] = {v.x*scale, v.y*scale, v.z*scale};
+                    //double tuple[] = {it->x*scale, it->y*scale, it->z*scale};
+                    data->SetTuple(i, tuple);
+                    ++i;
+                }
+            }
+            else{
+                for(std::vector<Base::Vector3d>::const_iterator it=vel.begin(); it!=vel.end(); ++it) {
+                    double tuple[] = {it->x, it->y, it->z};
+                    data->SetTuple(i, tuple);
+                    ++i;
+                }
             }
             grid->GetPointData()->AddArray(data);
             Base::Console().Message("Info: PropertyVectorList %s exported as  vtk array name '%s'\n", kv.first.c_str(), kv.second.c_str());
@@ -783,7 +825,7 @@ void _exportResult(const App::DocumentObject* result, vtkSmartPointer<vtkDataSet
         App::PropertyFloatList* field = nullptr;
         if (res->getPropertyByName(kv.first.c_str()))
             field = static_cast<App::PropertyFloatList*>(res->getPropertyByName(kv.first.c_str()));
-        if(field && !field->getValues().empty()) {
+        if(field && field->getValues().size()>1) {
             const std::vector<double>& vec = field->getValues();
             vtkSmartPointer<vtkDoubleArray> data = vtkSmartPointer<vtkDoubleArray>::New();
             data->SetNumberOfValues(vec.size());
@@ -846,11 +888,13 @@ void FemVTKTools::exportFluidicResult(const App::DocumentObject* res, vtkSmartPo
     cfd_scalers["TurbulenceSpecificDissipation"] = "omega";
     cfd_scalers["TurbulenceThermalDiffusivity"] = "alphat";
 
+    std::string essential_property = std::string("Velocity");
+
     if(!res->getPropertyByName("Velocity")){
         Base::Console().Error("essential field like `velocity` is not found in CfdResult\n");
         return;
     }
-    _exportResult(res, grid, cfd_vectors, cfd_scalers);
+    _exportResult(res, grid, cfd_vectors, cfd_scalers, essential_property);
 }
 
 
@@ -908,7 +952,9 @@ void FemVTKTools::exportMechanicalResult(const App::DocumentObject* res, vtkSmar
     scalers["MaxShear"] = "Max shear stress (Tresca)";
     scalers["StressValues"] = "Von Mises stress";
     //scalers["DisplacementLengths"] = "";  // not yet exported in exportMechanicalResult()
-    _exportResult(res, grid, vectors, scalers);
+
+    std::string essential_property = std::string("DisplacementVectors");
+    _exportResult(res, grid, vectors, scalers, essential_property);
 
 }
 
