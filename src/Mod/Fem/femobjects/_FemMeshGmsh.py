@@ -54,6 +54,17 @@ class _FemMeshGmsh():
         'MMG3D',
         'R-tree'
     ]
+    known_mesh_output_format = {
+        'Gmsh MSH': 1,
+        'I-Deas universal': 2,
+        'Automatic': 10,
+        'STL surface': 27,
+        'INRIA medit': 30,
+        'CGNS': 32,
+        'Salome mesh': 33,
+        'Abaqus INP': 39,
+        'Ploy surface': 42
+    }
 
     def __init__(self, obj):
         self.Type = "Fem::FemMeshGmsh"
@@ -199,6 +210,15 @@ class _FemMeshGmsh():
             "For each group create not only the elements but the nodes too."
         )
         obj.GroupsOfNodes = False
+
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "OutputFormat",
+            "FEM GMSH Mesh Params",
+            "mesh output file format"
+        )
+        obj.OutputFormat = [k for k in _FemMeshGmsh.known_mesh_output_format.keys()]
+        obj.OutputFormat = 'I-Deas universal'  # unv is the format supported by Calculix
 
     def execute(self, obj):
         return
