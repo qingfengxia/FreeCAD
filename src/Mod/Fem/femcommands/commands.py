@@ -105,6 +105,57 @@ class _CommandFemClippingPlaneRemoveAll(CommandManager):
         FreeCADGui.doCommand("nodes = sg.getChildren()")
         FreeCADGui.doCommand(line1 + line2 + line3)
 
+# where is the best place to put these constants?
+_DefaultInitialTemperature = "{'Name': 'Temperature', 'Symbol': u'T','ValueType': 'Expression', 'NumberOfComponents': 1, 'Unit': 'K', 'Value': 300}"
+_DefaultBodyAcceleration = "{'Name': 'Acceleration', 'Symbol': u'g','ValueType': 'Quantity', 'NumberOfComponents': 3, 'Unit': 'm/s^2', 'Value': [0, 0, -9.8]}"
+
+class _CommandFemInitialTemperature(CommandManager):
+    "The FEM_InitialTemperature command definition"
+    def __init__(self):
+        super(_CommandFemInitialTemperature, self).__init__()
+        self.resources = {
+            'Pixmap': 'fem-add-initial-value',
+            'MenuText': QtCore.QT_TRANSLATE_NOOP(
+                "FEM_InitialTemperature",
+                "initial temperature value"),
+            'ToolTip': QtCore.QT_TRANSLATE_NOOP(
+                "FEM_InitialTemperature",
+                "Creates an initialtemperature value")}
+        self.is_active = 'with_analysis'
+
+    def Activated(self):
+        FreeCAD.ActiveDocument.openTransaction("Create Fem InitialValue")
+        FreeCADGui.addModule("ObjectsFem")
+        # fill with a customised BodyConstrainSettings python dict
+        FreeCADGui.doCommand("bcs = {}".format(_DefaultInitialTemperature))
+        FreeCADGui.doCommand("FemGui.getActiveAnalysis().addObject(ObjectsFem.makeInitialValue(FreeCAD.ActiveDocument, bcs))")
+        FreeCADGui.doCommand("FreeCADGui.ActiveDocument.setEdit(FreeCAD.ActiveDocument.ActiveObject.Name)")
+        FreeCADGui.Selection.clearSelection()
+        FreeCAD.ActiveDocument.recompute()
+
+
+class _CommandFemBodyAcceleration(CommandManager):
+    "The FEM_BodyAcceleration command definition"
+    def __init__(self):
+        super(_CommandFemBodyAcceleration, self).__init__()
+        self.resources = {
+            'Pixmap': 'fem-add-body-source',
+            'MenuText': QtCore.QT_TRANSLATE_NOOP(
+                "FEM_BodyAcceleration",
+                "Constraint BodyAcceleration (gravity)"),
+            'ToolTip': QtCore.QT_TRANSLATE_NOOP(
+                "FEM_BodyAcceleration",
+                "Creates a FEM body constraint of acceleration")}
+        self.is_active = 'with_analysis'
+
+    def Activated(self):
+        FreeCAD.ActiveDocument.openTransaction("Create Fem BodyAcceleration")
+        FreeCADGui.addModule("ObjectsFem")
+        # make a customised BodyConstrainSettings python dict
+        FreeCADGui.doCommand("bcs = {}".format(_DefaultBodyAcceleration))
+        FreeCADGui.doCommand("FemGui.getActiveAnalysis().addObject(ObjectsFem.makeBodySource(FreeCAD.ActiveDocument, bcs))")
+        FreeCAD.ActiveDocument.recompute()
+
 
 class _CommandFemConstraintBodyHeatSource(CommandManager):
     "The FEM_ConstraintBodyHeatSource command definition"
@@ -824,6 +875,8 @@ FreeCADGui.addCommand('FEM_ConstraintElectrostaticPotential', _CommandFemConstra
 FreeCADGui.addCommand('FEM_ConstraintFlowVelocity', _CommandFemConstraintFlowVelocity())
 FreeCADGui.addCommand('FEM_ConstraintInitialFlowVelocity', _CommandFemConstraintInitialFlowVelocity())
 FreeCADGui.addCommand('FEM_ConstraintSelfWeight', _CommandFemConstraintSelfWeight())
+FreeCADGui.addCommand('FEM_InitialTemperature', _CommandFemInitialTemperature())
+FreeCADGui.addCommand('FEM_BodyAcceleration', _CommandFemBodyAcceleration())
 FreeCADGui.addCommand('FEM_ElementFluid1D', _CommandFemElementFluid1D())
 FreeCADGui.addCommand('FEM_ElementGeometry1D', _CommandFemElementGeometry1D())
 FreeCADGui.addCommand('FEM_ElementGeometry2D', _CommandFemElementGeometry2D())
