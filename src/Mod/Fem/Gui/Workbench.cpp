@@ -104,11 +104,13 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
           << "Separator"
           << "FEM_ConstraintForce"
           << "FEM_ConstraintPressure"
+          << "FEM_BodyAcceleration"
           << "FEM_ConstraintSelfWeight";
 
     Gui::ToolBarItem* thermal = new Gui::ToolBarItem(root);
     thermal->setCommand("Thermal Constraints");
     *thermal << "FEM_ConstraintInitialTemperature"
+             << "FEM_InitialTemperature"
              << "Separator"
              << "FEM_ConstraintTemperature"
              << "FEM_ConstraintHeatflux";
@@ -214,6 +216,7 @@ Gui::MenuItem* Workbench::setupMenuBar() const
           << "FEM_ConstraintForce"
           << "FEM_ConstraintPressure"
           << "FEM_ConstraintSelfWeight"
+          << "FEM_BodyAcceleration"
           << "Separator"
           << "FEM_ConstraintBearing"
           << "FEM_ConstraintGear"
@@ -222,6 +225,7 @@ Gui::MenuItem* Workbench::setupMenuBar() const
     Gui::MenuItem* thermal = new Gui::MenuItem;
     thermal->setCommand("&Thermal Constraints");
     *thermal << "FEM_ConstraintInitialTemperature"
+             << "FEM_InitialTemperature"
              << "Separator"
              << "FEM_ConstraintHeatflux"
              << "FEM_ConstraintTemperature"

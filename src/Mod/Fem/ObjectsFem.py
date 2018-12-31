@@ -43,7 +43,7 @@ def makeConstraintBearing(doc, name="ConstraintBearing"):
     obj = doc.addObject("Fem::ConstraintBearing", name)
     return obj
 
-
+#DEPRECATED
 def makeConstraintBodyHeatSource(doc, name="ConstraintBodyHeatSource"):
     '''makeConstraintBodyHeatSource(document, [name]): makes a Fem ConstraintBodyHeatSource object'''
     obj = doc.addObject("Fem::ConstraintPython", name)
@@ -118,7 +118,7 @@ def makeConstraintHeatflux(doc, name="ConstraintHeatflux"):
     obj = doc.addObject("Fem::ConstraintHeatflux", name)
     return obj
 
-
+#DEPRECATED
 def makeConstraintInitialFlowVelocity(doc, name="ConstraintInitialFlowVelocity"):
     '''makeConstraintInitialFlowVelocity(document, [name]): makes a Fem ConstraintInitialFlowVelocity object'''
     obj = doc.addObject("Fem::ConstraintPython", name)
@@ -129,11 +129,40 @@ def makeConstraintInitialFlowVelocity(doc, name="ConstraintInitialFlowVelocity")
         _ViewProviderFemConstraintInitialFlowVelocity.ViewProxy(obj.ViewObject)
     return obj
 
-
+#DEPRECATED
 def makeConstraintInitialTemperature(doc, name="ConstraintInitialTemperature"):
     '''makeConstraintInitialTemperature(document, name): makes a Fem ConstraintInitialTemperature object'''
     obj = doc.addObject("Fem::ConstraintInitialTemperature", name)
     return obj
+
+
+def makeBodySource(doc, bodySource, name="BodySource"): 
+    '''makeBodySource(document, [name]): creates an body source such as heat source, gravity'''
+    if not (name) and bodySource and 'Name' in bodySource:
+        name = "BodySource" + bodySource['Name']
+    obj = doc.addObject("Fem::FeaturePython", name)  # App::DocumentObject can not add dynamic property
+    from femobjects import _FemBodySource
+    _FemBodySource._FemBodySource(obj) 
+    obj.BodySource = bodySource
+
+    if FreeCAD.GuiUp: 
+        from femguiobjects import _ViewProviderFemBodySource
+        _ViewProviderFemBodySource._ViewProvider(obj.ViewObject) 
+    return obj 
+
+
+def makeInitialValue(doc, initialValue, name="IntialValue"): 
+    '''makeConstraintSelfWeight(document, [name]): creates an self weight object to define a gravity load'''
+    if not (name) and initialValue and 'Name' in initialValue:
+        name =  initialValue['Name'] + 'InitialValue'
+    obj = doc.addObject("Fem::FeaturePython", name)
+    from femobjects import _FemInitialValue
+    _FemInitialValue._FemInitialValue(obj) 
+    obj.InitialValue = initialValue
+    if FreeCAD.GuiUp: 
+        from femguiobjects import _ViewProviderFemInitialValue
+        _ViewProviderFemInitialValue._ViewProvider(obj.ViewObject) 
+    return obj 
 
 
 def makeConstraintPlaneRotation(doc, name="ConstraintPlaneRotation"):
