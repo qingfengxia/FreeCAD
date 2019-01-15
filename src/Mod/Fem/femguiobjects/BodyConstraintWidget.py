@@ -31,22 +31,22 @@ __url__ = "http://www.freecadweb.org"
 import sys
 sys.path.append('/usr/lib/freecad-daily/lib')  # just for testing
 
-import FreeCAD
-from FreeCAD import Units
-import FreeCADGui as Gui
+# import FreeCAD
+# from FreeCAD import Units
+# import FreeCADGui as Gui
 
-from PySide import QtCore
+# from PySide import QtCore
 # preparing for PySide2 Qt5
 from PySide.QtGui import QApplication
-from PySide.QtGui import QWidget, QFrame, QVBoxLayout, QGridLayout, QHBoxLayout, QLabel,\
-                            QButtonGroup, QRadioButton, QTextEdit, QLineEdit, QDoubleSpinBox
+from PySide.QtGui import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout, QLabel,\
+    QButtonGroup, QRadioButton, QLineEdit, QDoubleSpinBox
 
 
 class BodyConstraintWidget(QWidget):
 
     def __init__(self, bodyConstraintSettings):
         super(BodyConstraintWidget, self).__init__()
-    
+
         bcs = bodyConstraintSettings
         self.settings = bcs
         if bcs['Category'] == "InitialValue":
@@ -74,11 +74,11 @@ class BodyConstraintWidget(QWidget):
             if vtype == choice:
                 rb.setChecked(True)
         self.buttonGroupValueType.buttonClicked.connect(self.valueTypeChanged)  # diff conect syntax
- 
+
         _gridLayout = QGridLayout()
         if self.numberOfComponents == 1:
-            self.componentLabels = [u'magnitude'] 
-        else: 
+            self.componentLabels = [u'magnitude']
+        else:
             self.componentLabels = [u'x-component', u'x-component', u'x-component']
         self.componentLabels = [l + u'({})'.format(unicode(unit)) for l in self.componentLabels]
         self.quantityInputs = []
@@ -86,10 +86,10 @@ class BodyConstraintWidget(QWidget):
         for i in range(self.numberOfComponents):
             input = QDoubleSpinBox()  # Gui.InputField() depends on FreeCAD
             expr = QLineEdit()  # QTextEdit is too big
-            #expr.
-            _gridLayout.addWidget(QLabel(self.componentLabels[i]),i, 0)
-            _gridLayout.addWidget(input,i, 1)
-            _gridLayout.addWidget(expr,i, 2)
+            # expr.
+            _gridLayout.addWidget(QLabel(self.componentLabels[i]), i, 0)
+            _gridLayout.addWidget(input, i, 1)
+            _gridLayout.addWidget(expr, i, 2)
             self.quantityInputs.append(input)
             self.expressionInputs.append(expr)
 
@@ -105,7 +105,7 @@ class BodyConstraintWidget(QWidget):
         self.valueTypeChanged()
 
         value = self.settings['Value']
-        if value == None:
+        if value is None:
             return
         if not isinstance(value, (list, tuple)):
             value = [value]
@@ -116,14 +116,18 @@ class BodyConstraintWidget(QWidget):
                 self.quantityInputs[i].setValue(value[i])
 
     def valueTypeChanged(self):
-        #print(self.buttonGroupValueType.checkedId())
+        # print(self.buttonGroupValueType.checkedId())
         self.currentValueType = self.valueTypes[self.buttonGroupValueType.checkedId()]
         if self.currentValueType == 'Expression':
-            for q in self.quantityInputs: q.setVisible(False)
-            for e in self.expressionInputs: e.setVisible(True)
+            for q in self.quantityInputs:
+                q.setVisible(False)
+            for e in self.expressionInputs:
+                e.setVisible(True)
         else:
-            for q in self.quantityInputs: q.setVisible(True)
-            for e in self.expressionInputs: e.setVisible(False)
+            for q in self.quantityInputs:
+                q.setVisible(True)
+            for e in self.expressionInputs:
+                e.setVisible(False)
 
     def bodyConstraintSettings(self):
         bcs = self.settings.copy()
@@ -138,10 +142,14 @@ class BodyConstraintWidget(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    _DefaultInitialTemperature = {'Name': 'Temperature', 'Symbol': u'T', 'Category': 'InitialValue',\
-                'ValueType': 'Quantity', 'Unit': 'K', 'NumberOfComponents': 1, 'Value': 300}
-    _DefaultBodyAcceleration = {'Name': 'Acceleration', 'Symbol': u'g', 'Category': 'BodySource',\
-                'ValueType': 'Quantity', 'Unit': 'm/s^2', 'NumberOfComponents': 3, 'Value': [0, 0, -9.8]}
+    _DefaultInitialTemperature = {
+        'Name': 'Temperature', 'Symbol': u'T', 'Category': 'InitialValue',
+        'ValueType': 'Quantity', 'Unit': 'K', 'NumberOfComponents': 1, 'Value': 300
+    }
+    _DefaultBodyAcceleration = {
+        'Name': 'Acceleration', 'Symbol': u'g', 'Category': 'BodySource',
+        'ValueType': 'Quantity', 'Unit': 'm/s^2', 'NumberOfComponents': 3, 'Value': [0, 0, -9.8]
+    }
 
     settings = _DefaultBodyAcceleration
     dialog = BodyConstraintWidget(settings)

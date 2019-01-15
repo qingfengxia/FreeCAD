@@ -29,14 +29,14 @@ __url__ = "http://www.freecadweb.org"
 #  \brief FreeCAD FEM view provider for constraint initial flow velocity object
 
 import FreeCAD
-from FreeCAD import Units
+# from FreeCAD import Units
 import FreeCADGui
-from . import ViewProviderFemConstraint
 from . import ViewProviderFemConstraint
 
 # for the panel
 from . import FemSelectionWidgets
 from BodyConstraintWidget import BodyConstraintWidget
+
 
 class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
 
@@ -50,7 +50,7 @@ class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
             if o.isDerivedFrom("Fem::FemMeshObject"):
                 o.ViewObject.hide()
         # show task panel
-        task =_TaskPanel(vobj.Object)
+        task = _TaskPanel(vobj.Object)
         FreeCADGui.Control.showDialog(task)
         return True
 

@@ -29,6 +29,7 @@ __url__ = "http://www.freecadweb.org"
 #  \ingroup FEM
 #  \brief FreeCAD FEM constraint body heat source object
 
+
 class _FemBodySource:
     "The FEM body source document object"
     def __init__(self, obj):

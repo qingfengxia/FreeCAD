@@ -27,7 +27,8 @@ __url__ = "http://www.freecadweb.org"
 
 ## @package FemInitialValue
 #  \ingroup FEM
-#  \brief FreeCAD FEM intial value, one kind of body constraint 
+#  \brief FreeCAD FEM intial value, one kind of body constraint
+
 
 class _FemInitialValue:
     "The general Fem InitialValue object"

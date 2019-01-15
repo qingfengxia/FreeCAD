@@ -105,9 +105,11 @@ class _CommandFemClippingPlaneRemoveAll(CommandManager):
         FreeCADGui.doCommand("nodes = sg.getChildren()")
         FreeCADGui.doCommand(line1 + line2 + line3)
 
+
 # where is the best place to put these constants?
 _DefaultInitialTemperature = "{'Name': 'Temperature', 'Symbol': u'T','ValueType': 'Expression', 'NumberOfComponents': 1, 'Unit': 'K', 'Value': 300}"
 _DefaultBodyAcceleration = "{'Name': 'Acceleration', 'Symbol': u'g','ValueType': 'Quantity', 'NumberOfComponents': 3, 'Unit': 'm/s^2', 'Value': [0, 0, -9.8]}"
+
 
 class _CommandFemInitialTemperature(CommandManager):
     "The FEM_InitialTemperature command definition"
