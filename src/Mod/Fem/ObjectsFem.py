@@ -147,7 +147,6 @@ def makeBodySource(doc, bodySource, name="BodySource"):
     from femobjects import _FemBodySource
     _FemBodySource._FemBodySource(obj)
     obj.BodySource = bodySource
-
     if FreeCAD.GuiUp:
         from femguiobjects import _ViewProviderFemBodySource
         _ViewProviderFemBodySource._ViewProvider(obj.ViewObject)
@@ -155,7 +154,7 @@ def makeBodySource(doc, bodySource, name="BodySource"):
 
 
 def makeInitialValue(doc, initialValue, name="IntialValue"):
-    '''makeConstraintSelfWeight(document, [name]): creates an self weight object to define a gravity load'''
+    '''makeInitialValue(document, initial value [name]): creates an initial value object to define such as initial temperature'''
     if not (name) and initialValue and 'Name' in initialValue:
         name = initialValue['Name'] + 'InitialValue'
     obj = doc.addObject("Fem::FeaturePython", name)
