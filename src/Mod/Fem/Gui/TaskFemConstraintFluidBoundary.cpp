@@ -468,7 +468,7 @@ void TaskFemConstraintFluidBoundary::updateThermalBoundaryUI()
     //std::string thermalBoundaryType = pcConstraint->ThermalBoundaryType.getValueAsString();
 
     ui->labelHelpText->setText(tr(ThermalBoundaryHelpTexts[ui->comboThermalBoundaryType->currentIndex()]));
-    //to hide/disable UI according to subtype
+    // to hide/disable UI according to subtype
     std::string thermalBoundaryType = Base::Tools::toStdString(ui->comboThermalBoundaryType->currentText());
     ui->spinHTCoeffValue->setEnabled(false);
     ui->spinTemperatureValue->setEnabled(false);
@@ -624,14 +624,14 @@ void TaskFemConstraintFluidBoundary::onBoundaryTypeChanged(void)
     pcConstraint->BoundaryType.setValue(ui->comboBoundaryType->currentIndex());
     updateBoundaryTypeUI();
 
-    ConstraintView->updateData(&pcConstraint->BoundaryType);  //force a 3D redraw
+    ConstraintView->updateData(&pcConstraint->BoundaryType);  // force a 3D redraw
 
     // update view provider once BoundaryType changed, updateData() may be just enough
     //FreeCAD.getDocument(pcConstraint->Document.getName()).recompute();
     bool ret = pcConstraint->recomputeFeature();
     if (!ret) {
         std::string boundaryType = ui->comboBoundaryType->currentText().toStdString();
-        Base::Console().Error("Fluid boundary recomputationg failed for boundaryType `%s` \n", boundaryType);
+        Base::Console().Error("Fluid boundary recomputation failed for  changing boundaryType to `%s` \n", boundaryType.c_str());
     }
 }
 
