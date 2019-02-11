@@ -29,7 +29,6 @@ __url__ = "http://www.freecadweb.org"
 #  \brief QWidget for FEM general body source and initial value setup
 
 import sys
-sys.path.append('/usr/lib/freecad-daily/lib')  # just for testing
 
 # import FreeCAD
 # from FreeCAD import Units
@@ -38,46 +37,50 @@ sys.path.append('/usr/lib/freecad-daily/lib')  # just for testing
 # from PySide import QtCore
 # preparing for PySide2 Qt5
 from PySide.QtGui import QApplication
-from PySide.QtGui import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout, QLabel,\
-    QButtonGroup, QRadioButton, QLineEdit, QDoubleSpinBox
+from PySide.QtGui import QWidget, QFrame, QVBoxLayout, QGridLayout, QHBoxLayout, \
+    QButtonGroup, QRadioButton, QTextEdit, QLineEdit, QDoubleSpinBox, QLabel
+
+
+def _createChoiceGroup(valueTypes, valueTypeTips):
+        _buttonGroupLayout = QHBoxLayout()
+        buttonGroupValueType = QButtonGroup()
+        buttonGroupValueType.setExclusive(True)
+
+        for id, choice in enumerate(valueTypes):
+            rb = QRadioButton(choice)
+            rb.setToolTip(valueTypeTips[id])
+            buttonGroupValueType.addButton(rb, id)
+            _buttonGroupLayout.addWidget(rb)
+            if id == 0:
+                rb.setChecked(True)
+        return buttonGroupValueType, _buttonGroupLayout
 
 
 class BodyConstraintWidget(QWidget):
-
+    # QWidget that can be included into FreeCAD taskpanel or used as standalone UI
     def __init__(self, bodyConstraintSettings):
         super(BodyConstraintWidget, self).__init__()
 
-        bcs = bodyConstraintSettings
+        bcs = bodyConstraintSettings  # must existing
         self.settings = bcs
         if bcs['Category'] == "InitialValue":
             self.setWindowTitle(self.tr("set initial value"))
         else:
             self.setWindowTitle(self.tr("set body source"))
-
         self.numberOfComponents = bcs['NumberOfComponents']
-        vtype = bcs['ValueType']
         unit = bcs['Unit']
 
         _layout = QVBoxLayout()
         self.labelHelpText = QLabel(self.tr('set physical quantity by float or expression'), self)
 
-        _buttonGroupLayout = QHBoxLayout()
-        self.buttonGroupValueType = QButtonGroup()
-        self.buttonGroupValueType.setExclusive(True)
         self.valueTypes = ['Quantity', 'Expression']
         valueTypeTips = [self.tr(u'float value for each component'), self.tr(u'math expressiong using xyz coord')]
-        for id, choice in enumerate(self.valueTypes):
-            rb = QRadioButton(choice)
-            rb.setToolTip(valueTypeTips[id])
-            self.buttonGroupValueType.addButton(rb, id)
-            _buttonGroupLayout.addWidget(rb)
-            if vtype == choice:
-                rb.setChecked(True)
+        self.buttonGroupValueType, _buttonGroupLayout = _createChoiceGroup(self.valueTypes, valueTypeTips)
         self.buttonGroupValueType.buttonClicked.connect(self.valueTypeChanged)  # diff conect syntax
 
         _gridLayout = QGridLayout()
         if self.numberOfComponents == 1:
-            self.componentLabels = [u'magnitude']
+            self.componentLabels = [u'magnitude']  # todo: unicode is not a type in python3
         else:
             self.componentLabels = [u'x-component', u'x-component', u'x-component']
         self.componentLabels = [l + u'({})'.format(unicode(unit)) for l in self.componentLabels]
@@ -85,8 +88,9 @@ class BodyConstraintWidget(QWidget):
         self.expressionInputs = []
         for i in range(self.numberOfComponents):
             input = QDoubleSpinBox()  # Gui.InputField() depends on FreeCAD
+            input.setRange(-1e10, 1e10)  # give a range big enough
+            input.setValue(0.0)
             expr = QLineEdit()  # QTextEdit is too big
-            # expr.
             _gridLayout.addWidget(QLabel(self.componentLabels[i]), i, 0)
             _gridLayout.addWidget(input, i, 1)
             _gridLayout.addWidget(expr, i, 2)
@@ -98,19 +102,27 @@ class BodyConstraintWidget(QWidget):
         _layout.addLayout(_gridLayout)
         self.setLayout(_layout)
 
-        self.updateUI()
+        self.setSettings(self.settings)
 
-    def updateUI(self):
-        # file data into UI, possibibly value is empty
+    def setSettings(self, settings):
+        # fill setting data into UI, possibibly value is empty
+        vtype = settings['ValueType']
+        try:
+            index = self.valueTypes.index(vtype)
+        except ValueError:
+            index = 0
+        for button in self.buttonGroupValueType.buttons():
+            if self.buttonGroupValueType.id(button) == index:
+                button.setChecked(True)
         self.valueTypeChanged()
 
-        value = self.settings['Value']
+        value = settings['Value'] if ('Value' in settings) else None
         if value is None:
             return
-        if not isinstance(value, (list, tuple)):
+        if not isinstance(value, (list, tuple)) and settings['NumberOfComponents'] == 1:
             value = [value]
         for i in range(self.numberOfComponents):
-            if self.settings['ValueType'] == 'Expression':
+            if settings['ValueType'] == 'Expression':
                 self.expressionInputs[i].setText(unicode(value[i]))
             else:
                 self.quantityInputs[i].setValue(value[i])
@@ -135,6 +147,8 @@ class BodyConstraintWidget(QWidget):
             value = [e.text() for e in self.expressionInputs]
         else:
             value = [q.value() for q in self.quantityInputs]
+        if self.numberOfComponents == 1:
+            value = value[0]
         bcs['Value'] = value
         bcs['ValueType'] = self.currentValueType
         return bcs
@@ -143,11 +157,11 @@ class BodyConstraintWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     _DefaultInitialTemperature = {
-        'Name': 'Temperature', 'Symbol': u'T', 'Category': 'InitialValue',
+        'Name': 'Temperature', 'Symbol': u'T', 'Category': 'InitialValue',\
         'ValueType': 'Quantity', 'Unit': 'K', 'NumberOfComponents': 1, 'Value': 300
     }
     _DefaultBodyAcceleration = {
-        'Name': 'Acceleration', 'Symbol': u'g', 'Category': 'BodySource',
+        'Name': 'Acceleration', 'Symbol': u'g', 'Category': 'BodySource',\
         'ValueType': 'Quantity', 'Unit': 'm/s^2', 'NumberOfComponents': 3, 'Value': [0, 0, -9.8]
     }
 
