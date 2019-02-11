@@ -139,7 +139,22 @@ def makeConstraintInitialTemperature(doc, name="ConstraintInitialTemperature"):
     return obj
 
 
-def makeBodySource(doc, bodySource, name="BodySource"):
+# where is the best place to put these constants?
+_DefaultInitialTemperature = {'Name': 'Temperature', 'Symbol': u'T',
+    'ValueType': 'Expression', 'NumberOfComponents': 1, 'Unit': 'K', 'Value': 300}
+_DefaultBodyAcceleration = {'Name': 'Acceleration', 'Symbol': u'g','ValueType': 'Quantity',
+    'NumberOfComponents': 3, 'Unit': 'm/s^2', 'Value': [0, 0, -9.8]}
+
+
+def makeInitialTemperature(doc, name="InitialTemperature"):
+    return _makeInitialValue(doc, _DefaultInitialTemperature, name)
+
+
+def makeBodyAcceleration(doc, name="BodyAcceleration"):
+    return _makeBodySource(doc, _DefaultBodyAcceleration, name)
+
+
+def _makeBodySource(doc, bodySource, name="BodySource"):
     '''makeBodySource(document, [name]): creates an body source such as heat source, gravity'''
     if not (name) and bodySource and 'Name' in bodySource:
         name = "BodySource" + bodySource['Name']
@@ -153,7 +168,7 @@ def makeBodySource(doc, bodySource, name="BodySource"):
     return obj
 
 
-def makeInitialValue(doc, initialValue, name="IntialValue"):
+def _makeInitialValue(doc, initialValue, name="IntialValue"):
     '''makeInitialValue(document, initial value [name]): creates an initial value object to define such as initial temperature'''
     if not (name) and initialValue and 'Name' in initialValue:
         name = initialValue['Name'] + 'InitialValue'

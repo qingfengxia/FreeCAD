@@ -60,6 +60,8 @@ class TestObjectCreate(unittest.TestCase):
         analysis.addObject(ObjectsFem.makeConstraintHeatflux(doc))
         analysis.addObject(ObjectsFem.makeConstraintInitialFlowVelocity(doc))
         analysis.addObject(ObjectsFem.makeConstraintInitialTemperature(doc))
+        analysis.addObject(ObjectsFem.makeBodyAcceleration(doc))
+        analysis.addObject(ObjectsFem.makeInitialTemperature(doc))
         analysis.addObject(ObjectsFem.makeConstraintPlaneRotation(doc))
         analysis.addObject(ObjectsFem.makeConstraintPressure(doc))
         analysis.addObject(ObjectsFem.makeConstraintPulley(doc))

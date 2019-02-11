@@ -106,11 +106,6 @@ class _CommandFemClippingPlaneRemoveAll(CommandManager):
         FreeCADGui.doCommand(line1 + line2 + line3)
 
 
-# where is the best place to put these constants?
-_DefaultInitialTemperature = "{'Name': 'Temperature', 'Symbol': u'T','ValueType': 'Expression', 'NumberOfComponents': 1, 'Unit': 'K', 'Value': 300}"
-_DefaultBodyAcceleration = "{'Name': 'Acceleration', 'Symbol': u'g','ValueType': 'Quantity', 'NumberOfComponents': 3, 'Unit': 'm/s^2', 'Value': [0, 0, -9.8]}"
-
-
 class _CommandFemInitialTemperature(CommandManager):
     "The FEM_InitialTemperature command definition"
     def __init__(self):
@@ -128,9 +123,7 @@ class _CommandFemInitialTemperature(CommandManager):
     def Activated(self):
         FreeCAD.ActiveDocument.openTransaction("Create Fem InitialValue")
         FreeCADGui.addModule("ObjectsFem")
-        # fill with a customised BodyConstrainSettings python dict
-        FreeCADGui.doCommand("bcs = {}".format(_DefaultInitialTemperature))
-        FreeCADGui.doCommand("FemGui.getActiveAnalysis().addObject(ObjectsFem.makeInitialValue(FreeCAD.ActiveDocument, bcs))")
+        FreeCADGui.doCommand("FemGui.getActiveAnalysis().addObject(ObjectsFem.makeInitialTemperature(FreeCAD.ActiveDocument))")
         FreeCADGui.doCommand("FreeCADGui.ActiveDocument.setEdit(FreeCAD.ActiveDocument.ActiveObject.Name)")
         FreeCADGui.Selection.clearSelection()
         FreeCAD.ActiveDocument.recompute()
@@ -153,9 +146,7 @@ class _CommandFemBodyAcceleration(CommandManager):
     def Activated(self):
         FreeCAD.ActiveDocument.openTransaction("Create Fem BodyAcceleration")
         FreeCADGui.addModule("ObjectsFem")
-        # make a customised BodyConstrainSettings python dict
-        FreeCADGui.doCommand("bcs = {}".format(_DefaultBodyAcceleration))
-        FreeCADGui.doCommand("FemGui.getActiveAnalysis().addObject(ObjectsFem.makeBodySource(FreeCAD.ActiveDocument, bcs))")
+        FreeCADGui.doCommand("FemGui.getActiveAnalysis().addObject(ObjectsFem.makeBodyAcceleration(FreeCAD.ActiveDocument))")
         FreeCAD.ActiveDocument.recompute()
 
 
