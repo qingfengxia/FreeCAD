@@ -114,36 +114,3 @@ def export_fenics_mesh(obj, meshfileString):
         error = "Failed to write mesh file `{}` by Gmsh\n".format(meshfileString)
         FreeCAD.Console.PrintError(error)
         return error
-
-
-def show_fenics_mesh(fname):
-    # boundary layer, quad element is not supported
-    from dolfin import Mesh, MeshFunction, plot, interactive
-    mesh = Mesh(fname + ".xml")
-    if os.path.exists(fname + "_physical_region.xml"):
-        subdomains = MeshFunction("size_t", mesh, fname + "_physical_region.xml")
-        plot(subdomains)
-    if os.path.exists(fname + "_facet_region.xml"):
-        boundaries = MeshFunction("size_t", mesh, fname + "_facet_region.xml")
-        plot(boundaries)
-
-    plot(mesh)
-    interactive()
-
-
-def export_foam_mesh(obj, meshfileString, foamCaseFolder=None):
-    # support only 3D
-    gmsh = gmshtools.GmshTools(obj, FemGui.getActiveAnalysis())
-    meshfile = gmsh.export_mesh(u"Gmsh MSH", meshfileString)
-    if meshfile:
-        msg = "Info: Mesh is not written to `{}` by Gmsh\n".format(meshfile)
-        FreeCAD.Console.PrintMessage(msg)
-        if not foamCaseFolder:
-            comandlist = [u'gmshToFoam', u'-case', foamCaseFolder, meshfile]
-        else:
-            comandlist = [u'gmshToFoam', meshfile]
-        return _run_command(comandlist)
-    else:
-        error = "Mesh is NOT written to `{}` by Gmsh\n".format(meshfileString)
-        FreeCAD.Console.PrintError(error)
-        return error
