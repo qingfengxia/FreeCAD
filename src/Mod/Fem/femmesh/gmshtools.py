@@ -57,6 +57,8 @@ class GmshTools():
         "Abaqus INP": 39,
         "Ploy surface": 42,
     }
+    
+    # see more from `gmsh -h` file suffix without dot is the format string
     output_format_suffix = {
         "Gmsh MSH": ".msh",
         "I-Deas universal": ".unv",
@@ -64,7 +66,7 @@ class GmshTools():
         "STL surface": ".stl",
         "INRIA medit": ".mesh",
         "CGNS": ".cgns",
-        "Salome mesh": "med",
+        "Salome mesh": ".med",
         "Abaqus INP": ".inp",
         "Ploy surface": ".ply2",
     }

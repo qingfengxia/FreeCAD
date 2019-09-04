@@ -50,8 +50,8 @@ def export(objectslist, fileString):
     if not obj.isDerivedFrom("Fem::FemMeshObject"):
         FreeCAD.Console.PrintError("No FEM mesh object selected.\n")
         return
-    if not obj.Type == 'FemMeshGmsh':
-        FreeCAD.Console.PrintError("Object selected is not a FemMeshGmsh type\n")
+    if not obj.Proxy.Type == 'Fem::FemMeshGmsh':
+        FreeCAD.Console.PrintError("Object selected is not a Fem::FemMeshGmsh type\n")
         return
 
     if FreeCAD.GuiUp:
@@ -61,6 +61,7 @@ def export(objectslist, fileString):
     else:
         # it is still possible to lookup analysis object from document
         gmsh = gmshtools.GmshTools(obj)
+
     if fileString != "":
         fileName, fileExtension = os.path.splitext(fileString)
         for k in gmshtools.GmshTools.output_format_suffix:
@@ -96,7 +97,12 @@ def export_fenics_mesh(obj, meshfileString):
     if isinstance(meshfileStem, (unicode,)):
         meshfileStem = meshfileStem.encode('ascii')
 
-    gmsh = gmshtools.GmshTools(obj, FemGui.getActiveAnalysis())
+    if FreeCAD.GuiUp:
+        import FemGui
+        gmsh = gmshtools.GmshTools(obj, FemGui.getActiveAnalysis())
+    else:
+        gmsh = gmshtools.GmshTools(obj)
+
     meshfile = gmsh.export_mesh(u"Gmsh MSH", meshfileStem + ".msh")
     if meshfile:
         msg = "Info: Mesh has been written to `{}` by Gmsh\n".format(meshfile)
