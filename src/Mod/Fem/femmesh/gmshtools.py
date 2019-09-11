@@ -368,7 +368,7 @@ class GmshTools():
         self.constraint_objects = {}
         if self.analysis:
             print(" collect constraint group for analysis object")
-            for m in self.analysis.Member:
+            for m in self.analysis.Group:
                 if m.isDerivedFrom("Fem::Constraint"):
                     if len(m.References):
                         self.constraint_objects[m.Name] = list(m.References[0][1])
@@ -595,9 +595,11 @@ class GmshTools():
             print("  {}".format(self.bl_setting_list))
 
     def write_group(self, geo):
-        boundaries = 0
-        domains = 0
+        boundaries = 0  # count the boundary(2D surface) with boundary condition information
+        domains = 0  # count the calculation domains, i.e. solid for 3D a simulation
+        # these 2 counts is useful to report, also some solver like Fenics need a default
 
+        # self.constraint_objects are also needed to export like MeshGroup, 2 dict are merged here
         import copy
         all_group_elements = copy.copy(self.group_elements)
         for k in self.constraint_objects:
@@ -607,7 +609,7 @@ class GmshTools():
         if all_group_elements:
             geo.write("// group data \n")
             # we use the element name of FreeCAD which starts with 1 (example: 'Face1'), same as GMSH
-            for group in all_group_elements:
+            for group in sorted(all_group_elements):
                 gdata = all_group_elements[group]
                 ele_nr = ''
                 if gdata[0].startswith('Solid'):
@@ -650,16 +652,6 @@ class GmshTools():
             print("Warning: no boundary group data are written, thus boundary mesh will not be exported")
         geo.write("\n\n")
 
-        if self.analysis and self.mesh_obj.OutputFormat == u"I-Deas universal":
-            geo.write("// For each group save not only the elements but the nodes too.;\n")
-            geo.write("Mesh.SaveGroupsOfNodes = 1;\n")
-            # Mesh.SaveGroupsOfNodes: Save groups of nodes for each physical line and surface (UNV mesh format only)
-            geo.write("// Needed for Group meshing too, because for one material there is no group defined;\n")
-            # belongs to Mesh.SaveAll but anly needed if there are groups
-
-            geo.write("// Ignore Physical definitions and save all elements, if Mesh.SaveAll = 1;\n")
-            geo.write("Mesh.SaveAll = 1;\n")  # ortherwise only surface mesh is written for mesh read back to FreeCAD
-            geo.write("\n\n")
 
     def write_boundary_layer(self, geo):
         # currently single body is supported
@@ -700,6 +692,7 @@ class GmshTools():
         geo = open(self.temp_file_geo, "w")
         geo.write("// geo file for meshing with Gmsh meshing software created by FreeCAD\n")
         geo.write("\n")
+        
         geo.write("// open brep geometry\n")
         # explicit use double quotes in geo file
         geo.write('Merge "{}";\n'.format(self.temp_file_geometry))
@@ -749,6 +742,8 @@ class GmshTools():
         else:
             geo.write("Mesh.CharacteristicLengthMin = " + str(self.clmin) + ";\n")
         geo.write("\n")
+
+        ## ############## mesh options #################
         if hasattr(self.mesh_obj, "RecombineAll") and self.mesh_obj.RecombineAll is True:
             geo.write("// other mesh options\n")
             geo.write("Mesh.RecombineAll = 1;\n")
@@ -780,6 +775,7 @@ class GmshTools():
         geo.write("Mesh.ElementOrder = " + self.order + ";\n")
         geo.write("\n")
 
+        ## ############## mesh algorithms #################
         geo.write(
             "// mesh algorithm, only a few algorithms are "
             "usable with 3D boundary layer generation\n"
@@ -813,22 +809,30 @@ class GmshTools():
         else:
             geo.write("Mesh  " + self.dimension + ";\n")
         geo.write("\n")
+
+        ## ############## set export mesh format #################
         geo.write("// output format 1=msh, 2=unv, 10=automatic, 27=stl, 32=cgns, 33=med, 39=inp, 40=ply2\n")
         geo.write("Mesh.Format = {};\n".format(
             GmshTools.supported_mesh_output_formats[self.mesh_obj.OutputFormat]
         ))
-        if self.group_elements and self.group_nodes_export:
-            geo.write("// For each group save not only the elements but the nodes too.;\n")
-            geo.write("Mesh.SaveGroupsOfNodes = 1;\n")
-            # belongs to Mesh.SaveAll but only needed if there are groups
-            geo.write(
-                "// Needed for Group meshing too, because "
-                "for one material there is no group defined;\n")
+        # mesh format specific setting
+        if self.analysis and self.mesh_obj.OutputFormat == u"I-Deas universal":
+            if self.group_elements and self.group_nodes_export:
+                geo.write("// For each group save not only the elements but the nodes too.;\n")
+                geo.write("Mesh.SaveGroupsOfNodes = 1;\n")
+                # belongs to Mesh.SaveAll but only needed if there are groups
+                geo.write(
+                    "// Needed for Group meshing too, because "
+                    "for one material there is no group defined;\n")
+
+        # write_group() has write default Interior domain, these two lines below may not necessary
         geo.write("// Ignore Physical definitions and save all elements;\n")
         geo.write("Mesh.SaveAll = 1;\n")
+
         # explicit use double quotes in geo file
         geo.write('Save "{}";\n'.format(self.temp_file_mesh))
         geo.write("\n\n")
+
         geo.write("//////////////////////////////////////////////////////////////////////\n")
         geo.write("// Gmsh documentation:\n")
         geo.write("// http://gmsh.info/doc/texinfo/gmsh.html#Mesh\n")
