@@ -342,10 +342,10 @@ class GmshTools():
         print("  " + self.gmsh_bin)
 
     def get_group_data(self):
-        self.group_elements = {}
-        # TODO solid, face, edge seam not work together, some print or make it work together
+        # TODO: solids, faces, edges and vertexes don't seem to work together in one group,
+        #       some output message or make them work together
 
-        # mesh groups and groups of analysis member
+        # mesh group objects
         if not self.mesh_obj.MeshGroupList:
             # print("  No mesh group objects.")
             pass
@@ -358,13 +358,31 @@ class GmshTools():
                         self.group_elements[ge] = new_group_elements[ge]
                     else:
                         FreeCAD.Console.PrintError("  A group with this name exists already.\n")
-        print('  {}'.format(self.group_elements))
 
-        self.get_constraint_data()
-        # TODO: get material_obj with References
+        # group meshing for analysis
+        analysis_group_meshing = FreeCAD.ParamGet(
+            "User parameter:BaseApp/Preferences/Mod/Fem/General"
+        ).GetBool("AnalysisGroupMeshing", False)
+        if self.analysis and analysis_group_meshing:
+            print("  Group meshing for analysis.")
+            self.group_nodes_export = True
+            new_group_elements = meshtools.get_analysis_group_elements(
+                self.analysis,
+                self.part_obj
+            )
+            for ge in new_group_elements:
+                if ge not in self.group_elements:
+                    self.group_elements[ge] = new_group_elements[ge]
+                else:
+                    FreeCAD.Console.PrintError("  A group with this name exists already.\n")
+        else:
+            print("  No Group meshing for analysis.")
+
+        if self.group_elements:
+            print("  {}".format(self.group_elements))
 
     def get_constraint_data(self):
-        # group from FemConstraint objects of analysis object
+        # group derived from C++ FemConstraint objects of analysis object
         self.constraint_objects = {}
         if self.analysis:
             print(" collect constraint group for analysis object")
@@ -594,22 +612,20 @@ class GmshTools():
                     )
             print("  {}".format(self.bl_setting_list))
 
-    def write_group(self, geo):
+    def write_contraints(self, geo):
+        # export boundary and subdomain meshesing
+        
+        # TODO:  renamed to self.volume_group_number,  face_group_number,
+        # to cooprarate write_group()
         boundaries = 0  # count the boundary(2D surface) with boundary condition information
-        domains = 0  # count the calculation domains, i.e. solid for 3D a simulation
-        # these 2 counts is useful to report, also some solver like Fenics need a default
+        domains = 0  # count the calculation domains or body contraints, i.e. solid for 3D a simulation
+        # these 2 counts is useful to report, also some solver like Fenics need interior domain exported
 
         # self.constraint_objects are also needed to export like MeshGroup, 2 dict are merged here
-        import copy
-        all_group_elements = copy.copy(self.group_elements)
-        for k in self.constraint_objects:
-            all_group_elements[k] = self.constraint_objects[k]
-        print(all_group_elements)
-
-        if all_group_elements:
-            geo.write("// group data \n")
+        if self.constraint_objects:
+            geo.write("// write boundary mesh for those boundary conditions/constraints data \n")
             # we use the element name of FreeCAD which starts with 1 (example: 'Face1'), same as GMSH
-            for group in sorted(all_group_elements):
+            for group in self.constraint_objects:  # already sorted as it is an OrderedDict
                 gdata = all_group_elements[group]
                 ele_nr = ''
                 if gdata[0].startswith('Solid'):
@@ -651,6 +667,51 @@ class GmshTools():
         if boundaries == 0:
             print("Warning: no boundary group data are written, thus boundary mesh will not be exported")
         geo.write("\n\n")
+
+    def write_group(self, geo):
+        """ sources of groups:
+        1. FemMeshGroup: idenfier of geometry for mesh exporing
+        2. femtools.get_analysis_group_elements()
+        3. self.constraint_objects, which is not yet merged in `get_group_data()` or `femtools.get_analysis_group_elements()`
+        """
+        if self.group_elements:
+            # print("  We are going to have to find elements to make mesh groups for.")
+            geo.write("// group data\n")
+            # we use the element name of FreeCAD which starts
+            # with 1 (example: "Face1"), same as Gmsh
+            # for unit test we need them to have a fixed order
+            for group in sorted(self.group_elements.keys()):
+                gdata = self.group_elements[group]
+                # print(gdata)
+                # geo.write("// " + group + "\n")
+                ele_nr = ""
+                if gdata[0].startswith("Solid"):
+                    physical_type = "Volume"
+                    for ele in gdata:
+                        ele_nr += (ele.lstrip("Solid") + ", ")
+                elif gdata[0].startswith("Face"):
+                    physical_type = "Surface"
+                    for ele in gdata:
+                        ele_nr += (ele.lstrip("Face") + ", ")
+                elif gdata[0].startswith("Edge"):
+                    physical_type = "Line"
+                    for ele in gdata:
+                        ele_nr += (ele.lstrip("Edge") + ", ")
+                elif gdata[0].startswith("Vertex"):
+                    physical_type = "Point"
+                    for ele in gdata:
+                        ele_nr += (ele.lstrip("Vertex") + ", ")
+                if ele_nr:
+                    ele_nr = ele_nr.rstrip(", ")
+                    # print(ele_nr)
+                    curly_br_s = "{"
+                    curly_br_e = "}"
+                    # explicit use double quotes in geo file
+                    geo.write(
+                        'Physical {}("{}") = {}{}{};\n'
+                        .format(physical_type, group, curly_br_s, ele_nr, curly_br_e)
+                    )
+            geo.write("\n")
 
 
     def write_boundary_layer(self, geo):
