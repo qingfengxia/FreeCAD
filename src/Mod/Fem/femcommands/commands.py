@@ -158,14 +158,15 @@ class _InitialTemperature(CommandManager):
             "Pixmap": "fem-add-initial-value",
             "MenuText": QtCore.QT_TRANSLATE_NOOP(
                 "FEM_InitialTemperature",
-                "initial temperature value"),
+                "initial temperature value"
+            ),
             "ToolTip": QtCore.QT_TRANSLATE_NOOP(
                 "FEM_InitialTemperature",
-                "Creates an initialtemperature value")}
+                "Creates an initialtemperature value"
+            )
+        }
         self.is_active = "with_analysis"
-
-    def Activated(self):
-        self.add_obj_on_gui_set_edit(self.__class__.__name__.lstrip("_"))
+        self.do_activated = "add_obj_on_gui_set_edit"
 
 
 class _BodyAcceleration(CommandManager):
@@ -176,14 +177,15 @@ class _BodyAcceleration(CommandManager):
             "Pixmap": "fem-add-body-source",
             "MenuText": QtCore.QT_TRANSLATE_NOOP(
                 "FEM_BodyAcceleration",
-                "Constraint BodyAcceleration (gravity)"),
+                "Constraint BodyAcceleration (gravity)"
+            ),
             "ToolTip": QtCore.QT_TRANSLATE_NOOP(
                 "FEM_BodyAcceleration",
-                "Creates a FEM body constraint of acceleration")}
+                "Creates a FEM body constraint of acceleration"
+            )
+        }
         self.is_active = "with_analysis"
-
-    def Activated(self):
-        self.add_obj_on_gui_set_edit(self.__class__.__name__.lstrip("_"))
+        self.do_activated = "add_obj_on_gui_set_edit"
 
 
 class _ConstraintBodyHeatSource(CommandManager):
