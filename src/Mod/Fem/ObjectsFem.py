@@ -191,6 +191,9 @@ def makeConstraintInitialTemperature(
     return obj
 
 
+# more informations
+# https://forum.freecadweb.org/viewtopic.php?f=18&t=33124
+
 # where is the best place to put these constants?
 _DefaultInitialTemperature = {
     "Name": "Temperature",
@@ -208,6 +211,12 @@ _DefaultBodyAcceleration = {
     "Unit": "m/s^2",
     "Value": [0, 0, -9.8]
 }
+# goot questions
+# for all other constraints they are in the femobjects class definition
+# they should not be here
+# in a separate module in femobjects
+# one module for each constraint or one module for all these generic constraints?
+# or one for initial values and one for body source
 
 
 # these methods and objects could replace:
@@ -217,6 +226,12 @@ _DefaultBodyAcceleration = {
 # ATM the new ones are not implemented in any writer
 # this has to be done before any other constraint could be declared depretiated
 # Furthermore some converter needs to be implemented
+
+
+# first commit: generic objects, here the _make methods only
+#               they should be at module top
+# second commit: icons, no command, because the generic obj itself has no command
+# further commits: for each constraint based on the new generic ones, one commit
 
 
 def makeInitialTemperature(
