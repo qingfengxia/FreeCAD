@@ -168,19 +168,36 @@ class _InitialTemperature(CommandManager):
         self.is_active = "with_analysis"
         self.do_activated = "add_obj_on_gui_set_edit"
 
-
-class _BodyAcceleration(CommandManager):
-    "The FEM_BodyAcceleration command definition"
+class _InitialPressure(CommandManager):
+    "The FEM_InitialPressure command definition"
     def __init__(self):
-        super(_BodyAcceleration, self).__init__()
+        super(_InitialPressure, self).__init__()
+        self.resources = {
+            "Pixmap": "fem-add-initial-value",
+            "MenuText": QtCore.QT_TRANSLATE_NOOP(
+                "FEM_InitialPressure",
+                "initial pressure value"
+            ),
+            "ToolTip": QtCore.QT_TRANSLATE_NOOP(
+                "FEM_InitialPressure",
+                "Creates an initial pressure value"
+            )
+        }
+        self.is_active = "with_analysis"
+        self.do_activated = "add_obj_on_gui_set_edit"
+
+class _ConstraintAcceleration(CommandManager):
+    "The FEM_ConstraintAcceleration command definition"
+    def __init__(self):
+        super(_ConstraintAcceleration, self).__init__()
         self.resources = {
             "Pixmap": "fem-add-body-source",
             "MenuText": QtCore.QT_TRANSLATE_NOOP(
-                "FEM_BodyAcceleration",
-                "Constraint BodyAcceleration (gravity)"
+                "FEM_ConstraintAcceleration",
+                "Acceleration (gravity)"
             ),
             "ToolTip": QtCore.QT_TRANSLATE_NOOP(
-                "FEM_BodyAcceleration",
+                "FEM_ConstraintAcceleration",
                 "Creates a FEM body constraint of acceleration"
             )
         }
@@ -1174,8 +1191,12 @@ FreeCADGui.addCommand(
     _InitialTemperature()
 )
 FreeCADGui.addCommand(
-    "FEM_BodyAcceleration",
-    _BodyAcceleration()
+    "FEM_InitialPressure",
+    _InitialPressure()
+)
+FreeCADGui.addCommand(
+    "FEM_ConstraintAcceleration",
+    _ConstraintAcceleration()
 )
 FreeCADGui.addCommand(
     "FEM_ElementFluid1D",

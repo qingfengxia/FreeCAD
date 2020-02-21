@@ -45,6 +45,7 @@ class ViewProxy(object):
         vobj.Proxy = self
 
     def attach(self, vobj):
+        self.obj = vobj.Object
         default = coin.SoGroup()
         vobj.addDisplayMode(default, "Default")
 

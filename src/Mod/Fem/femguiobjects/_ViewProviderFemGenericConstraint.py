@@ -20,11 +20,11 @@
 # *                                                                         *
 # ***************************************************************************
 
-__title__ = "FreeCAD FEM body constraint initial value ViewProvider"
-__author__ = "Juergen Riegel, Bernd Hahnebach, Qingfeng Xia"
+__title__ = "FreeCAD FEM generic constraint ViewProvider"
+__author__ = "JBernd Hahnebach, Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
-## @package ViewProviderFemInitialValue
+## @package ViewProviderFemBodySource
 #  \ingroup FEM
 #  \brief FreeCAD FEM view provider for constraint initial flow velocity object
 
@@ -35,14 +35,27 @@ from . import ViewProviderFemConstraint
 
 # for the panel
 from . import FemSelectionWidgets
-from .BodyConstraintWidget import BodyConstraintWidget
+from .ConstraintInputWidget import ConstraintInputWidget
 
 
 class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
 
+    def __init__(self, vobj):
+        vobj.Proxy = self
+        self.obj = vobj.Object  # needed in getIcon()
+
     def getIcon(self):
         # todo: dynamically generate icon by overlaying physical field symbol
-        return ":/icons/fem-add-initial-value"
+        if "Category" in self.obj.PropertiesList:
+            if self.obj.Category == "Source":
+                return ":/icons/fem-add-body-source"
+            elif self.obj.Category == "InitialValue":
+                return ":/icons/fem-add-initial-value"
+            else:
+                return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint  
+        else:
+            FreeCAD.Console.Error("Document object does not have Category property")
+            return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint
 
     def setEdit(self, vobj, mode=0):
         # hide all meshes
@@ -60,31 +73,45 @@ class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
 
 
 class _TaskPanel:
-    """The editmode TaskPanel for FemInitialValue
-    objects (FemBodySource and FemInitialValue)"""
+    """The editmode TaskPanel for generic constraint objects (FemBodySource and FemInitialValue)"""
 
     def __init__(self, obj):
         self.obj = obj
-        self.BodyConstraintSettings = self.obj.InitialValue
-        self.BodyConstraintSettings["Category"] = "InitialValue"
-        shapeTypes = ["Solid", "Face"]  # Todo: detect geometry dimension
 
-        self.parameterWidget = BodyConstraintWidget(self.BodyConstraintSettings)
-        # geometry selection widget
+        self.ConstraintSettings = self.obj.Settings
+        if "Category" in self.obj.PropertiesList:
+            if self.obj.Category == "Source":
+                self.ConstraintSettings["Category"] = "Source"
+            elif self.obj.Category == "InitialValue":
+                self.ConstraintSettings["Category"] = "InitialValue"
+            else:
+                self.ConstraintSettings["Category"] = "Constraint"
+        else:
+            FreeCAD.Console.Error("Document object does not have Category property")
+            self.ConstraintSettings["Category"] = "Constraint"
+
+        self.ConstraintSettings["ShapeType"] = self.obj.ShapeType
+        # shapeTypes = [self.obj.ShapeType]
+        shapeTypes = ["Solid", "Face", "Edge", "Vertext"]   # start with Solid in list!
+
+        self.parameterWidget = ConstraintInputWidget(self.ConstraintSettings)
+        # geometry selection widget,  if only solid will be select, using SolidSelector()
         self.selectionWidget = FemSelectionWidgets.GeometryElementsSelection(
             obj.References, shapeTypes, False
         )
-        # check references, has to be after initialisation of selectionWidget
-        self.selectionWidget.has_equal_references_shape_types()
 
         # form made from param and selection widget
         self.form = [self.parameterWidget, self.selectionWidget]
+
+        # check references, has to be after initialisation of selectionWidget
+        self.selectionWidget.has_equal_references_shape_types()
 
     # ********* leave task panel *********
     def accept(self):
         # print(self.material)
         if self.selectionWidget.has_equal_references_shape_types():
-            self.obj.InitialValue = self.parameterWidget.bodyConstraintSettings()
+
+            self.obj.Settings = self.parameterWidget.constraintSettings()
             self.obj.References = self.selectionWidget.references
             self.recompute_and_set_back_all()
             return True
