@@ -56,24 +56,26 @@ def _createChoiceGroup(valueTypes, valueTypeTips):
         return buttonGroupValueType, _buttonGroupLayout
 
 
-class BodyConstraintWidget(QWidget):
+class ConstraintInputWidget(QWidget):
     # QWidget that can be included into FreeCAD taskpanel or used as standalone UI
-    def __init__(self, bodyConstraintSettings):
-        super(BodyConstraintWidget, self).__init__()
+    def __init__(self, constraintSettings):
+        super(ConstraintInputWidget, self).__init__()
 
-        bcs = bodyConstraintSettings  # must existing
+        bcs = constraintSettings  # must existing
         self.settings = bcs
         if bcs["Category"] == "InitialValue":
             self.setWindowTitle(self.tr("set initial value"))
-        else:
+        elif bcs["Category"] == "Source":
             self.setWindowTitle(self.tr("set body source"))
+        else:
+            self.setWindowTitle(self.tr("set constraint input"))
+
         self.numberOfComponents = bcs["NumberOfComponents"]
         unit = bcs["Unit"]
 
         _layout = QVBoxLayout()
         self.labelHelpText = QLabel(
             self.tr("set physical quantity by float or expression"),
-            self
         )
 
         self.valueTypes = ["Quantity", "Expression"]
@@ -111,9 +113,9 @@ class BodyConstraintWidget(QWidget):
         _layout.addLayout(_gridLayout)
         self.setLayout(_layout)
 
-        self.setSettings(self.settings)
+        self.updateUI(self.settings)
 
-    def setSettings(self, settings):
+    def updateUI(self, settings):
         # fill setting data into UI, possibibly value is empty
         vtype = settings["ValueType"]
         try:
@@ -150,7 +152,7 @@ class BodyConstraintWidget(QWidget):
             for e in self.expressionInputs:
                 e.setVisible(False)
 
-    def bodyConstraintSettings(self):
+    def constraintSettings(self):
         bcs = self.settings.copy()
         if self.currentValueType == "Expression":
             value = [e.text() for e in self.expressionInputs]
@@ -174,17 +176,17 @@ if __name__ == "__main__":
         "NumberOfComponents": 1,
         "Value": 300
     }
-    _DefaultBodyAcceleration = {
+    _DefaultConstraintAcceleration = {
         "Name": "Acceleration",
         "Symbol": "g",
-        "Category": "BodySource",
+        "Category": "Source",
         "ValueType": "Quantity",
         "Unit": "m/s^2",
         "NumberOfComponents": 3,
         "Value": [0, 0, -9.8]
     }
 
-    settings = _DefaultBodyAcceleration
-    dialog = BodyConstraintWidget(settings)
+    settings = _DefaultConstraintAcceleration
+    dialog = ConstraintInputWidget(settings)
     dialog. show()
     app.exec_()

@@ -21,32 +21,63 @@
 # *                                                                         *
 # ***************************************************************************
 
-__title__ = "FreeCAD FEM body constraint (initial value) document object"
-__author__ = "Markus Hovorka, Bernd Hahnebach, Qingfeng Xia"
+__title__ = "FreeCAD FEM constraint body (point, line, face, volume) source document object"
+__author__ = "Bernd Hahnebach, Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
-## @package FemInitialValue
+## @package FemGenericConstraint
 #  \ingroup FEM
-#  \brief FreeCAD FEM initial value, one kind of body constraint
+#  \brief FreeCAD FEM generic constraint object
 
 
-class _FemInitialValue:
-    "The general Fem InitialValue object"
+class _FemGenericConstraint(object):
+    "The FEM body source document object"
     def __init__(self, obj):
+        obj.Proxy = self
+        self.Type = "Fem::GenericConstraint"
+
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "Category",
+            "GenericConstraint",
+            "to distinguish contraint or initial value or source"
+        )
         obj.addProperty(
             "App::PropertyLinkSubList",
-            "References",
-            "InitialValue",
-            "List of body shapes"
+            "References", "GenericConstraint",
+            "List of geometry references/links"
+        )
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "ShapeType",  # code review: rename to PreferedShapeType? or just remove this
+            "GenericConstraint",
+            "perfered geometry shape type"
+        )
+        obj.addProperty(
+            "App::PropertyStringList",
+            "ShapeTypes",
+            "GenericConstraint",
+            "List of ppliable shape types"
         )
         obj.addProperty(
             "App::PropertyPythonObject",
-            "InitialValue",
-            "InitialValue",
-            "Initial value python dict"
+            "Settings",
+            "GenericConstraint",
+            "A dictionary holds settings for contraint, initial value or source"
         )
-        obj.Proxy = self
-        self.Type = "Fem::InitialValue"
+        obj.Category = ["Constraint", "InitialValue", "Source"]
+        obj.Category = "Constraint"
+        obj.ShapeTypes = ["Solid", "Face", "Edge", "Vertex"]  # == OCCT ShapeType names
+        obj.ShapeType = ["Solid", "Face", "Edge", "Vertex"]  # == OCCT ShapeType names
+        obj.ShapeType = "Solid"
+        obj.References = []
+        obj.Settings = {}
 
     def execute(self, obj):
         return
+
+    def __getstate__(self):
+        return None
+
+    def __setstate__(self, state):
+        return None
