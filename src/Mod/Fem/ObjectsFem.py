@@ -268,7 +268,7 @@ def _makeBodySource(
     if not (name) and bodySource and "Name" in bodySource:
         name = "BodySource" + bodySource["Name"]
     # App::DocumentObject can not add dynamic property
-    obj = doc.addObject("Fem::FeaturePython", name)
+    obj = doc.addObject("Fem::ConstraintPython", name)
     from femobjects import _FemGenericConstraint
     _FemGenericConstraint._FemGenericConstraint(obj)
     obj.Settings = bodySource
@@ -288,7 +288,7 @@ def _makeInitialValue(
     creates an initial value object to define such as initial temperature"""
     if not (name) and initialValue and "Name" in initialValue:
         name = initialValue["Name"] + "InitialValue"
-    obj = doc.addObject("Fem::FeaturePython", name)
+    obj = doc.addObject("Fem::ConstraintPython", name)
     from femobjects import _FemGenericConstraint
     _FemGenericConstraint._FemGenericConstraint(obj)
     obj.Settings = initialValue
