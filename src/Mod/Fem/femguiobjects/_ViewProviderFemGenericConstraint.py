@@ -52,7 +52,7 @@ class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
             elif self.obj.Category == "InitialValue":
                 return ":/icons/fem-add-initial-value"
             else:
-                return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint  
+                return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint
         else:
             FreeCAD.Console.Error("Document object does not have Category property")
             return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint

@@ -40,7 +40,7 @@ class _FemGenericConstraint(object):
             "App::PropertyEnumeration",
             "Category",
             "GenericConstraint",
-            "to distinguish contraint or initial value or source"
+            "to distinguish constraint or initial value or source"
         )
         obj.addProperty(
             "App::PropertyLinkSubList",
@@ -63,7 +63,7 @@ class _FemGenericConstraint(object):
             "App::PropertyPythonObject",
             "Settings",
             "GenericConstraint",
-            "A dictionary holds settings for contraint, initial value or source"
+            "A dictionary holds settings for constraint, initial value or source"
         )
         obj.Category = ["Constraint", "InitialValue", "Source"]
         obj.Category = "Constraint"
@@ -81,3 +81,38 @@ class _FemGenericConstraint(object):
 
     def __setstate__(self, state):
         return None
+
+
+# where is the best place to put these constants?
+# for all other constraints attribute definition is in class in femobjects
+# means these should be in femobjects too
+# - here in _FemGenericConstraint
+# - in one separate module in femobjects
+# - one module for each constraint based on the generic one. Just one dict per module?
+# - or one module for all initial values and one for body source
+"""
+_DefaultInitialTemperature = {
+    "Name": "Temperature",
+    "Symbol": u"T",
+    "ValueType": "Quantity",
+    "NumberOfComponents": 1,
+    "Unit": "K",
+    "Value": 300
+}
+"""
+_DefaultInitialPressure = {
+    "Name": "Pressure",
+    "Symbol": u"p",
+    "ValueType": "Expression",
+    "NumberOfComponents": 1,
+    "Unit": "MPa",
+    "Value": "0.1"
+}
+_DefaultConstraintAcceleration = {
+    "Name": "Acceleration",
+    "Symbol": u"g",
+    "ValueType": "Quantity",
+    "NumberOfComponents": 3,
+    "Unit": "m/s^2",
+    "Value": [0, 0, -9.8]
+}

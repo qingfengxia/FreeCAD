@@ -29,6 +29,77 @@ __url__ = "http://www.freecadweb.org"
 import FreeCAD
 
 
+# ********* generic constraints ******************************************************************
+# more information
+# https://forum.freecadweb.org/viewtopic.php?f=18&t=33124
+
+
+# these methods and objects could replace:
+#     constraint body heat source
+#     constraint initial temperature
+#     constraint initial flow velocity
+# ATM the new ones are not implemented in any writer
+# this has to be done before any other constraint could be declared depretiated
+# Furthermore some converter needs to be implemented
+
+
+# first commit: generic objects, here the _make methods only
+#               they should be at module top
+# second commit: icons, no command, because the generic obj itself has no command
+# further commits: for each constraint based on the new generic ones, one commit
+
+
+# it would be good to be able to add such a generic obj too and decide
+# at runtime about the attributes, TODO for later
+
+
+# no matter how the generic constraint is implemented.
+# each constraint should have
+# - its command name and class in command module, thus its icon
+# - its make method here
+
+
+def _makeBodySource(
+    doc,
+    bodySource,
+    name="Source"
+):
+    """makeBodySource(document, body source dict, [name]):
+    creates an body source such as heat source, gravity"""
+    if not (name) and bodySource and "Name" in bodySource:
+        name = "BodySource" + bodySource["Name"]
+    # App::DocumentObject can not add dynamic property
+    obj = doc.addObject("Fem::ConstraintPython", name)
+    from femobjects import _FemGenericConstraint
+    _FemGenericConstraint._FemGenericConstraint(obj)
+    obj.Settings = bodySource
+    obj.Category = "Source"
+    if FreeCAD.GuiUp:
+        from femguiobjects import _ViewProviderFemGenericConstraint
+        _ViewProviderFemGenericConstraint._ViewProvider(obj.ViewObject)
+    return obj
+
+
+def _makeInitialValue(
+    doc,
+    initialValue,
+    name="IntialValue"
+):
+    """makeInitialValue(document, initialvalue dict, [name]):
+    creates an initial value object to define such as initial temperature"""
+    if not (name) and initialValue and "Name" in initialValue:
+        name = initialValue["Name"] + "InitialValue"
+    obj = doc.addObject("Fem::ConstraintPython", name)
+    from femobjects import _FemGenericConstraint
+    _FemGenericConstraint._FemGenericConstraint(obj)
+    obj.Settings = initialValue
+    obj.Category = "InitialValue"
+    if FreeCAD.GuiUp:
+        from femguiobjects import _ViewProviderFemGenericConstraint
+        _ViewProviderFemGenericConstraint._ViewProvider(obj.ViewObject)
+    return obj
+
+
 # ********* analysis objects *********************************************************************
 def makeAnalysis(
     doc,
@@ -40,7 +111,25 @@ def makeAnalysis(
     return obj
 
 
+# ********* ?????????? objects *******************************************************************
+# ist this an own type or is the constraint just missing
+def makeInitialPressure(
+    doc,
+    name="InitialPressure"
+):
+    from femobjects._FemGenericConstraint import _DefaultInitialPressure
+    return _makeInitialValue(doc, _DefaultInitialPressure, name)
+
+
 # ********* constraint objects *******************************************************************
+def makeConstraintAcceleration(
+    doc,
+    name="ConstraintAcceleration"
+):
+    from femobjects._FemGenericConstraint import _DefaultConstraintAcceleration
+    return _makeBodySource(doc, _DefaultConstraintAcceleration, name)
+
+
 def makeConstraintBearing(
     doc,
     name="ConstraintBearing"
@@ -188,114 +277,6 @@ def makeConstraintInitialTemperature(
     """makeConstraintInitialTemperature(document, name):
     makes a Fem ConstraintInitialTemperature object"""
     obj = doc.addObject("Fem::ConstraintInitialTemperature", name)
-    return obj
-
-
-# more informations
-# https://forum.freecadweb.org/viewtopic.php?f=18&t=33124
-
-# where is the best place to put these constants?
-# note: _DefaultInitialTemperature is not used yet
-#       it should replace makeFemConstraintInitialTemperature
-_DefaultInitialTemperature = {
-    "Name": "Temperature",
-    "Symbol": u"T",
-    "ValueType": "Quantity",
-    "NumberOfComponents": 1,
-    "Unit": "K",
-    "Value": 300
-}
-_DefaultInitialPressure = {
-    "Name": "Pressure",
-    "Symbol": u"p",
-    "ValueType": "Expression",
-    "NumberOfComponents": 1,
-    "Unit": "MPa",
-    "Value": "0.1"
-}
-_DefaultConstraintAcceleration = {
-    "Name": "Acceleration",
-    "Symbol": u"g",
-    "ValueType": "Quantity",
-    "NumberOfComponents": 3,
-    "Unit": "m/s^2",
-    "Value": [0, 0, -9.8]
-}
-# good questions
-# for all other constraints they are in the femobjects class definition
-# they should not be here
-# in a separate module in femobjects
-# one module for each constraint or one module for all these generic constraints?
-# or one for initial values and one for body source
-
-
-# these methods and objects could replace:
-#     constraint body heat source
-#     constraint initial temperature
-#     constraint initial flow velocity
-# ATM the new ones are not implemented in any writer
-# this has to be done before any other constraint could be declared depretiated
-# Furthermore some converter needs to be implemented
-
-
-# first commit: generic objects, here the _make methods only
-#               they should be at module top
-# second commit: icons, no command, because the generic obj itself has no command
-# further commits: for each constraint based on the new generic ones, one commit
-
-
-def makeInitialPressure(
-    doc,
-    name="InitialPressure"
-):
-    return _makeInitialValue(doc, _DefaultInitialPressure, name)
-
-
-def makeConstraintAcceleration(
-    doc,
-    name="ConstraintAcceleration"
-):
-    return _makeBodySource(doc, _DefaultConstraintAcceleration, name)
-
-
-def _makeBodySource(
-    doc,
-    bodySource,
-    name="Source"
-):
-    """makeBodySource(document, body source dict, [name]):
-    creates an body source such as heat source, gravity"""
-    if not (name) and bodySource and "Name" in bodySource:
-        name = "BodySource" + bodySource["Name"]
-    # App::DocumentObject can not add dynamic property
-    obj = doc.addObject("Fem::ConstraintPython", name)
-    from femobjects import _FemGenericConstraint
-    _FemGenericConstraint._FemGenericConstraint(obj)
-    obj.Settings = bodySource
-    obj.Category = "Source"
-    if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemGenericConstraint
-        _ViewProviderFemGenericConstraint._ViewProvider(obj.ViewObject)
-    return obj
-
-
-def _makeInitialValue(
-    doc,
-    initialValue,
-    name="IntialValue"
-):
-    """makeInitialValue(document, initialvalue dict, [name]):
-    creates an initial value object to define such as initial temperature"""
-    if not (name) and initialValue and "Name" in initialValue:
-        name = initialValue["Name"] + "InitialValue"
-    obj = doc.addObject("Fem::ConstraintPython", name)
-    from femobjects import _FemGenericConstraint
-    _FemGenericConstraint._FemGenericConstraint(obj)
-    obj.Settings = initialValue
-    obj.Category = "InitialValue"
-    if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemGenericConstraint
-        _ViewProviderFemGenericConstraint._ViewProvider(obj.ViewObject)
     return obj
 
 

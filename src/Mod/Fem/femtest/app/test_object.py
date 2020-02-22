@@ -65,10 +65,9 @@ class TestObjectCreate(unittest.TestCase):
         doc = self.active_doc
         analysis = ObjectsFem.makeAnalysis(doc)
 
-        analysis.addObject(ObjectsFem.makeConstraintBodyHeatSource(doc))
-        analysis.addObject(ObjectsFem.makeConstraintAcceleration(doc))
 
         analysis.addObject(ObjectsFem.makeConstraintBearing(doc))
+        analysis.addObject(ObjectsFem.makeConstraintBodyHeatSource(doc))
         analysis.addObject(ObjectsFem.makeConstraintContact(doc))
         analysis.addObject(ObjectsFem.makeConstraintTie(doc))
         analysis.addObject(ObjectsFem.makeConstraintDisplacement(doc))
@@ -79,6 +78,8 @@ class TestObjectCreate(unittest.TestCase):
         analysis.addObject(ObjectsFem.makeConstraintForce(doc))
         analysis.addObject(ObjectsFem.makeConstraintGear(doc))
         analysis.addObject(ObjectsFem.makeConstraintHeatflux(doc))
+        analysis.addObject(ObjectsFem.makeConstraintInitialFlowVelocity(doc))
+        analysis.addObject(ObjectsFem.makeConstraintInitialTemperature(doc))
         analysis.addObject(ObjectsFem.makeConstraintPlaneRotation(doc))
         analysis.addObject(ObjectsFem.makeConstraintPressure(doc))
         analysis.addObject(ObjectsFem.makeConstraintPulley(doc))
@@ -86,8 +87,7 @@ class TestObjectCreate(unittest.TestCase):
         analysis.addObject(ObjectsFem.makeConstraintTemperature(doc))
         analysis.addObject(ObjectsFem.makeConstraintTransform(doc))
 
-        analysis.addObject(ObjectsFem.makeConstraintInitialFlowVelocity(doc))
-        analysis.addObject(ObjectsFem.makeConstraintInitialTemperature(doc))
+        analysis.addObject(ObjectsFem.makeConstraintAcceleration(doc))
         analysis.addObject(ObjectsFem.makeInitialPressure(doc))
 
         analysis.addObject(ObjectsFem.makeElementFluid1D(doc))
