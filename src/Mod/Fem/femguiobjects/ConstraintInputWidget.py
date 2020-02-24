@@ -94,7 +94,7 @@ class ConstraintInputWidget(QWidget):
             self.componentLabels = ["magnitude"]
         else:
             self.componentLabels = ["x-component", "x-component", "x-component"]
-        self.componentLabels = [l + "({})".format((unit)) for l in self.componentLabels]
+        self.componentLabels = [l + " ({})".format((unit)) for l in self.componentLabels]
         self.quantityInputs = []
         self.expressionInputs = []
         for i in range(self.numberOfComponents):
