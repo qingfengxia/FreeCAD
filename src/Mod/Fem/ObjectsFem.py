@@ -70,13 +70,13 @@ def _makeBodySource(
         name = "BodySource" + bodySource["Name"]
     # App::DocumentObject can not add dynamic property
     obj = doc.addObject("Fem::ConstraintPython", name)
-    from femobjects import _FemGenericConstraint
-    _FemGenericConstraint._FemGenericConstraint(obj)
+    from femobjects import _FemConstraintGeneric
+    _FemConstraintGeneric._FemConstraintGeneric(obj)
     obj.Settings = bodySource
     obj.Category = "Source"
     if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemGenericConstraint
-        _ViewProviderFemGenericConstraint._ViewProvider(obj.ViewObject)
+        from femguiobjects import _ViewProviderFemConstraintGeneric
+        _ViewProviderFemConstraintGeneric._ViewProvider(obj.ViewObject)
     return obj
 
 
@@ -90,13 +90,13 @@ def _makeInitialValue(
     if not (name) and initialValue and "Name" in initialValue:
         name = initialValue["Name"] + "InitialValue"
     obj = doc.addObject("Fem::ConstraintPython", name)
-    from femobjects import _FemGenericConstraint
-    _FemGenericConstraint._FemGenericConstraint(obj)
+    from femobjects import _FemConstraintGeneric
+    _FemConstraintGeneric._FemConstraintGeneric(obj)
     obj.Settings = initialValue
     obj.Category = "InitialValue"
     if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemGenericConstraint
-        _ViewProviderFemGenericConstraint._ViewProvider(obj.ViewObject)
+        from femguiobjects import _ViewProviderFemConstraintGeneric
+        _ViewProviderFemConstraintGeneric._ViewProvider(obj.ViewObject)
     return obj
 
 
@@ -117,7 +117,7 @@ def makeInitialPressure(
     doc,
     name="InitialPressure"
 ):
-    from femobjects._FemGenericConstraint import _DefaultInitialPressure
+    from femobjects._FemConstraintGeneric import _DefaultInitialPressure
     return _makeInitialValue(doc, _DefaultInitialPressure, name)
 
 
@@ -126,7 +126,7 @@ def makeConstraintAcceleration(
     doc,
     name="ConstraintAcceleration"
 ):
-    from femobjects._FemGenericConstraint import _DefaultConstraintAcceleration
+    from femobjects._FemConstraintGeneric import _DefaultConstraintAcceleration
     return _makeBodySource(doc, _DefaultConstraintAcceleration, name)
 
 

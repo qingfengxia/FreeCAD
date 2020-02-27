@@ -25,12 +25,12 @@ __title__ = "FreeCAD FEM constraint body (point, line, face, volume) source docu
 __author__ = "Bernd Hahnebach, Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
-## @package FemGenericConstraint
+## @package FemConstraintGeneric
 #  \ingroup FEM
 #  \brief FreeCAD FEM generic constraint object
 
 
-class _FemGenericConstraint(object):
+class _FemConstraintGeneric(object):
     "The FEM body source document object"
     def __init__(self, obj):
         obj.Proxy = self
@@ -86,7 +86,7 @@ class _FemGenericConstraint(object):
 # where is the best place to put these constants?
 # for all other constraints attribute definition is in class in femobjects
 # means these should be in femobjects too
-# - here in _FemGenericConstraint
+# - here in _FemConstraintGeneric
 # - in one separate module in femobjects
 # - one module for each constraint based on the generic one. Just one dict per module?
 # - or one module for all initial values and one for body source
