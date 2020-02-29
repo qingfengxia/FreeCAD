@@ -71,6 +71,12 @@ class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
         FreeCADGui.Control.closeDialog()
         return True
 
+    def __getstate__(self):
+        return None
+
+    def __setstate__(self,state):
+        return None
+
 
 class _TaskPanel:
     """The editmode TaskPanel for generic constraint objects (FemBodySource and FemInitialValue)"""

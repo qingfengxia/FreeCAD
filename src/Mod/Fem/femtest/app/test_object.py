@@ -163,7 +163,7 @@ class TestObjectType(unittest.TestCase):
             type_of_obj(ObjectsFem.makeConstraintBearing(doc))
         )
         self.assertEqual(
-            "Fem::GenericConstraint",
+            "Fem::ConstraintGeneric",
             type_of_obj(ObjectsFem.makeConstraintAcceleration(doc))
         )
         self.assertEqual(
@@ -207,7 +207,7 @@ class TestObjectType(unittest.TestCase):
             type_of_obj(ObjectsFem.makeConstraintHeatflux(doc))
         )
         self.assertEqual(
-            "Fem::GenericConstraint",
+            "Fem::ConstraintGeneric",
             type_of_obj(ObjectsFem.makeInitialPressure(doc))
         )
         self.assertEqual(
@@ -365,7 +365,7 @@ class TestObjectType(unittest.TestCase):
         ))
         self.assertTrue(is_of_type(
             ObjectsFem.makeConstraintAcceleration(doc),
-            "Fem::GenericConstraint"
+            "Fem::ConstraintGeneric"
         ))
         self.assertTrue(is_of_type(
             ObjectsFem.makeConstraintBearing(doc),
@@ -417,7 +417,7 @@ class TestObjectType(unittest.TestCase):
         ))
         self.assertTrue(is_of_type(
             ObjectsFem.makeInitialPressure(doc),
-            "Fem::GenericConstraint"
+            "Fem::ConstraintGeneric"
         ))
         self.assertTrue(is_of_type(
             ObjectsFem.makeConstraintInitialTemperature(doc),
@@ -591,7 +591,7 @@ class TestObjectType(unittest.TestCase):
         ))
         self.assertTrue(is_derived_from(
             constraint_acceleration,
-            "Fem::GenericConstraint"
+            "Fem::ConstraintGeneric"
         ))
 
         # ConstraintBearing
@@ -786,7 +786,7 @@ class TestObjectType(unittest.TestCase):
         ))
         self.assertTrue(is_derived_from(
             initial_pressure,
-            "Fem::GenericConstraint"
+            "Fem::ConstraintGeneric"
         ))
 
         # ConstraintInitialTemperature
