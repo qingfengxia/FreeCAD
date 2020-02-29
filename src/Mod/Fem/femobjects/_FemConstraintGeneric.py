@@ -29,12 +29,16 @@ __url__ = "http://www.freecadweb.org"
 #  \ingroup FEM
 #  \brief FreeCAD FEM generic constraint object
 
+#import FemConstraint  #FemConstraint.Proxy
 
-class _FemConstraintGeneric(object):
+class _FemConstraintGeneric():
     "The FEM body source document object"
     def __init__(self, obj):
+        #FemConstraint.Proxy.__init__(self, obj)
+
         obj.Proxy = self
-        self.Type = "Fem::GenericConstraint"
+        self.Type = "Fem::ConstraintGeneric"
+        self.Object = obj
 
         obj.addProperty(
             "App::PropertyEnumeration",
@@ -71,17 +75,19 @@ class _FemConstraintGeneric(object):
         obj.ShapeType = ["Solid", "Face", "Edge", "Vertex"]  # == OCCT ShapeType names
         obj.ShapeType = "Solid"
         obj.References = []
-        obj.Settings = {}
+        obj.Settings = {"Velocity": {}}
 
     def execute(self, obj):
+        ''' Called on document recompute '''
         return
 
     def __getstate__(self):
-        return None
+        # Called during document saving
+        return self.Type
 
     def __setstate__(self, state):
-        return None
-
+        if state:
+            self.Type = state
 
 # where is the best place to put these constants?
 # for all other constraints attribute definition is in class in femobjects
