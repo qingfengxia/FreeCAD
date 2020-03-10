@@ -133,40 +133,13 @@ class _ClippingPlaneRemoveAll(CommandManager):
         FreeCADGui.doCommand(line1 + line2 + line3)
 
 
-class _InitialPressure(CommandManager):
-    "The FEM_InitialPressure command definition"
-    def __init__(self):
-        super(_InitialPressure, self).__init__()
-        self.resources = {
-            "Pixmap": "fem-add-initial-value",
-            "MenuText": QtCore.QT_TRANSLATE_NOOP(
-                "FEM_InitialPressure",
-                "initial pressure value"
-            ),
-            "ToolTip": QtCore.QT_TRANSLATE_NOOP(
-                "FEM_InitialPressure",
-                "Creates an initial pressure value"
-            )
-        }
-        self.is_active = "with_analysis"
-        self.do_activated = "add_obj_on_gui_set_edit"
-
-
 class _ConstraintAcceleration(CommandManager):
     "The FEM_ConstraintAcceleration command definition"
     def __init__(self):
         super(_ConstraintAcceleration, self).__init__()
-        self.resources = {
-            "Pixmap": "fem-add-body-source",
-            "MenuText": QtCore.QT_TRANSLATE_NOOP(
-                "FEM_ConstraintAcceleration",
-                "Acceleration (gravity)"
-            ),
-            "ToolTip": QtCore.QT_TRANSLATE_NOOP(
-                "FEM_ConstraintAcceleration",
-                "Creates a FEM body constraint of acceleration"
-            )
-        }
+        self.pixmap = "fem-add-body-source"
+        self.menuetext = "Constraint acceleration"
+        self.tooltip = "Creates a FEM constraint acceleration"
         self.is_active = "with_analysis"
         self.do_activated = "add_obj_on_gui_set_edit"
 
@@ -212,6 +185,17 @@ class _ConstraintInitialFlowVelocity(CommandManager):
         super(_ConstraintInitialFlowVelocity, self).__init__()
         self.menuetext = "Constraint initial flow velocity"
         self.tooltip = "Creates a FEM constraint initial flow velocity"
+        self.is_active = "with_analysis"
+        self.do_activated = "add_obj_on_gui_set_edit"
+
+
+class _ConstraintInitialPressure(CommandManager):
+    "The FEM_ConstraintInitialPressure command definition"
+    def __init__(self):
+        super(_ConstraintInitialPressure, self).__init__()
+        self.pixmap = "fem-add-initial-value"
+        self.menuetext = "Constraint initial pressure"
+        self.tooltip = "Creates a FEM constraint initial pressure"
         self.is_active = "with_analysis"
         self.do_activated = "add_obj_on_gui_set_edit"
 
@@ -804,6 +788,10 @@ FreeCADGui.addCommand(
     _ClippingPlaneRemoveAll()
 )
 FreeCADGui.addCommand(
+    "FEM_ConstraintAcceleration",
+    _ConstraintAcceleration()
+)
+FreeCADGui.addCommand(
     "FEM_ConstraintBodyHeatSource",
     _ConstraintBodyHeatSource()
 )
@@ -820,20 +808,16 @@ FreeCADGui.addCommand(
     _ConstraintInitialFlowVelocity()
 )
 FreeCADGui.addCommand(
+    "FEM_ConstraintInitialPressure",
+    _ConstraintInitialPressure()
+)
+FreeCADGui.addCommand(
     "FEM_ConstraintSelfWeight",
     _ConstraintSelfWeight()
 )
 FreeCADGui.addCommand(
     "FEM_ConstraintTie",
     _ConstraintTie()
-)
-FreeCADGui.addCommand(
-    "FEM_InitialPressure",
-    _InitialPressure()
-)
-FreeCADGui.addCommand(
-    "FEM_ConstraintAcceleration",
-    _ConstraintAcceleration()
 )
 FreeCADGui.addCommand(
     "FEM_ElementFluid1D",

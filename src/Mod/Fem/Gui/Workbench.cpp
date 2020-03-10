@@ -113,15 +113,14 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
           << "FEM_ConstraintTie"
           << "FEM_ConstraintTransform"
           << "Separator"
+          << "FEM_ConstraintAcceleration"
           << "FEM_ConstraintForce"
           << "FEM_ConstraintPressure"
-          << "FEM_ConstraintAcceleration"
           << "FEM_ConstraintSelfWeight";
 
     Gui::ToolBarItem* thermal = new Gui::ToolBarItem(root);
     thermal->setCommand("Thermal Constraints");
     *thermal << "FEM_ConstraintInitialTemperature"
-             << "FEM_InitialPressure"
              << "Separator"
              << "FEM_ConstraintTemperature"
              << "FEM_ConstraintHeatflux";
@@ -141,7 +140,8 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
 
     Gui::ToolBarItem* fluid = new Gui::ToolBarItem(root);
     fluid->setCommand("Fluid Constraints");
-    *fluid << "FEM_ConstraintInitialFlowVelocity"
+    *fluid << "FEM_ConstraintInitialPressure"
+           << "FEM_ConstraintInitialFlowVelocity"
            << "Separator"
            << "FEM_ConstraintFluidBoundary"
            << "FEM_ConstraintFlowVelocity";
@@ -226,10 +226,10 @@ Gui::MenuItem* Workbench::setupMenuBar() const
           << "FEM_ConstraintTie"
           << "FEM_ConstraintTransform"
           << "Separator"
+          << "FEM_ConstraintAcceleration"
           << "FEM_ConstraintForce"
           << "FEM_ConstraintPressure"
           << "FEM_ConstraintSelfWeight"
-          << "FEM_ConstraintAcceleration"
           << "Separator"
           << "FEM_ConstraintBearing"
           << "FEM_ConstraintGear"
@@ -245,7 +245,7 @@ Gui::MenuItem* Workbench::setupMenuBar() const
 
     Gui::MenuItem* fluid = new Gui::MenuItem;
     fluid->setCommand("&Fluid Constraints");
-    *fluid << "FEM_InitialPressure"
+    *fluid << "FEM_ConstraintInitialPressure"
            << "FEM_ConstraintInitialFlowVelocity"
            << "Separator"
            << "FEM_ConstraintFluidBoundary"

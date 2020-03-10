@@ -1,6 +1,7 @@
 ﻿# ***************************************************************************
-# *                                                                         *
 # *   Copyright (c) 2018 qingfeng Xia <qingfeng.xia@gmail.coom>             *
+# *                                                                         *
+# *   This file is part of the FreeCAD CAx development system.              *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -30,15 +31,16 @@ __url__ = "http://www.freecadweb.org"
 
 import sys
 
-# import FreeCAD
-# from FreeCAD import Units
-# import FreeCADGui as Gui
-
-# from PySide import QtCore
-# preparing for PySide2 Qt5
 from PySide.QtGui import QApplication
-from PySide.QtGui import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout, \
-    QButtonGroup, QRadioButton, QLineEdit, QDoubleSpinBox, QLabel
+from PySide.QtGui import QButtonGroup
+from PySide.QtGui import QDoubleSpinBox
+from PySide.QtGui import QGridLayout
+from PySide.QtGui import QLabel
+from PySide.QtGui import QHBoxLayout
+from PySide.QtGui import QLineEdit
+from PySide.QtGui import QRadioButton
+from PySide.QtGui import QVBoxLayout
+from PySide.QtGui import QWidget
 
 
 def _createChoiceGroup(valueTypes, valueTypeTips):
@@ -93,7 +95,7 @@ class ConstraintInputWidget(QWidget):
         if self.numberOfComponents == 1:
             self.componentLabels = ["magnitude"]
         else:
-            self.componentLabels = ["x-component", "x-component", "x-component"]
+            self.componentLabels = ["x-component", "y-component", "z-component"]
         self.componentLabels = [l + " ({})".format((unit)) for l in self.componentLabels]
         self.quantityInputs = []
         self.expressionInputs = []

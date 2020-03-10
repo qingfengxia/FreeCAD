@@ -1,7 +1,8 @@
 # ***************************************************************************
-# *                                                                         *
-# *   Copyright (c) 2017 Markus Hovorka <m.hovorka@live.de>                 *
 # *   Copyright (c) 2018 qingfeng Xia <qingfeng.xia@gmail.coom>             *
+# *   Copyright (c) 2020 Bernd Hahnebach <bernd@bimstatik.org>              *
+# *                                                                         *
+# *   This file is part of the FreeCAD CAx development system.              *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -25,20 +26,24 @@ __title__ = "FreeCAD FEM constraint body (point, line, face, volume) source docu
 __author__ = "Bernd Hahnebach, Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
-## @package FemGenericConstraint
+## @package _FemConstraintGeneric
 #  \ingroup FEM
 #  \brief FreeCAD FEM generic constraint object
 
-#import FemConstraint  #FemConstraint.Proxy
+from . import FemConstraint
 
-class _FemGenericConstraint(object):
-    "The FEM body source document object"
+
+class _FemConstraintGeneric(FemConstraint.Proxy):
+    """
+    The FEM body source document object
+    """
+
+    Type = "Fem::ConstraintGeneric"
+
     def __init__(self, obj):
-        #FemConstraint.Proxy.__init__(self, obj)
+        super(_FemConstraintGeneric, self).__init__(obj)
 
-        obj.Proxy = self
-        self.Type = "Fem::ConstraintGeneric"
-        self.Object = obj
+        # self.Object = obj
 
         obj.addProperty(
             "App::PropertyEnumeration",
@@ -76,49 +81,3 @@ class _FemGenericConstraint(object):
         obj.ShapeType = "Solid"
         obj.References = []
         obj.Settings = {"Velocity": {}}
-
-    def execute(self, obj):
-        ''' Called on document recompute '''
-        return
-
-    def __getstate__(self):
-        # Called during document saving
-        return self.Type
-
-    def __setstate__(self, state):
-        if state:
-            self.Type = state
-
-# where is the best place to put these constants?
-# for all other constraints attribute definition is in class in femobjects
-# means these should be in femobjects too
-# - here in _FemGenericConstraint
-# - in one separate module in femobjects
-# - one module for each constraint based on the generic one. Just one dict per module?
-# - or one module for all initial values and one for body source
-"""
-_DefaultInitialTemperature = {
-    "Name": "Temperature",
-    "Symbol": u"T",
-    "ValueType": "Quantity",
-    "NumberOfComponents": 1,
-    "Unit": "K",
-    "Value": 300
-}
-"""
-_DefaultInitialPressure = {
-    "Name": "Pressure",
-    "Symbol": u"p",
-    "ValueType": "Expression",
-    "NumberOfComponents": 1,
-    "Unit": "MPa",
-    "Value": "0.1"
-}
-_DefaultConstraintAcceleration = {
-    "Name": "Acceleration",
-    "Symbol": u"g",
-    "ValueType": "Quantity",
-    "NumberOfComponents": 3,
-    "Unit": "m/s^2",
-    "Value": [0, 0, -9.8]
-}
