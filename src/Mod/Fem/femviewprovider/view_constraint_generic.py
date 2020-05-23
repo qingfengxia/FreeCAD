@@ -33,12 +33,12 @@ import FreeCAD
 import FreeCADGui
 
 
-from ._TaskPanelConstraintGeneric import ConstraintInputWidget
-from . import FemSelectionWidgets
-from . import ViewProviderFemConstraint
+from femguiutils.constraint_widgets import ConstraintInputWidget
+from femguiutils.selection_widgets import GeometryElementsSelection
+from . import view_base_femconstraint
 
 
-class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
+class VPConstraintGeneric(view_base_femconstraint.VPBaseFemConstraint):
 
     def getIcon(self):
         # todo: dynamically generate icon by overlaying physical field symbol
@@ -54,7 +54,7 @@ class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
             return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint
 
     def setEdit(self, vobj, mode=0):
-        ViewProviderFemConstraint.ViewProxy.setEdit(
+        view_base_femconstraint.VPBaseFemConstraint.setEdit(
             self,
             vobj,
             mode,
@@ -88,7 +88,7 @@ class _TaskPanel:
 
         self.parameterWidget = ConstraintInputWidget(self.ConstraintSettings)
         # geometry selection widget,  if only solid will be select, using SolidSelector()
-        self.selectionWidget = FemSelectionWidgets.GeometryElementsSelection(
+        self.selectionWidget = GeometryElementsSelection(
             obj.References, shapeTypes, False
         )
 

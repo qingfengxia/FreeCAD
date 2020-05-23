@@ -30,18 +30,18 @@ __url__ = "http://www.freecadweb.org"
 #  \ingroup FEM
 #  \brief FreeCAD FEM generic constraint object
 
-from . import FemConstraint
+from . import base_fempythonobject
 
 
-class _FemConstraintGeneric(FemConstraint.Proxy):
+class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
     """
-    The FEM body source document object
+    The generic object for initial values and body source FemConstraint 
     """
 
     Type = "Fem::ConstraintGeneric"
 
     def __init__(self, obj):
-        super(_FemConstraintGeneric, self).__init__(obj)
+        super(ConstraintGeneric, self).__init__(obj)
 
         # self.Object = obj
 
@@ -58,15 +58,15 @@ class _FemConstraintGeneric(FemConstraint.Proxy):
         )
         obj.addProperty(
             "App::PropertyEnumeration",
-            "ShapeType",  # code review: rename to PreferedShapeType? or just remove this
+            "ShapeType",  # code review: rename to PreferedShapeType or DefaultShapeType
             "GenericConstraint",
-            "perfered geometry shape type"
+            "the default geometry shape type for this constraint"
         )
         obj.addProperty(
             "App::PropertyStringList",
             "ShapeTypes",
             "GenericConstraint",
-            "List of ppliable shape types"
+            "List of appliable shape types"
         )
         obj.addProperty(
             "App::PropertyPythonObject",
@@ -78,6 +78,6 @@ class _FemConstraintGeneric(FemConstraint.Proxy):
         obj.Category = "Constraint"
         obj.ShapeTypes = ["Solid", "Face", "Edge", "Vertex"]  # == OCCT ShapeType names
         obj.ShapeType = ["Solid", "Face", "Edge", "Vertex"]  # == OCCT ShapeType names
-        obj.ShapeType = "Solid"
+        obj.ShapeType = "Solid"  # default shape type
         obj.References = []
         obj.Settings = {"Velocity": {}}

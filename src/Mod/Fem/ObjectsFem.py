@@ -51,13 +51,13 @@ def _makeConstraintBodySource(
         name = "BodySource" + bodySource["Name"]
     # App::DocumentObject can not add dynamic property
     obj = doc.addObject("Fem::ConstraintPython", name)
-    from femobjects import _FemConstraintGeneric
-    _FemConstraintGeneric._FemConstraintGeneric(obj)
+    from femobjects import constraint_generic
+    constraint_generic.ConstraintGeneric(obj)
     obj.Settings = bodySource
     obj.Category = "Source"
     if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemConstraintGeneric
-        _ViewProviderFemConstraintGeneric._ViewProvider(obj.ViewObject)
+        from femviewprovider import view_constraint_generic
+        view_constraint_generic.VPConstraintGeneric(obj.ViewObject)
     return obj
 
 
@@ -71,13 +71,13 @@ def _makeConstraintInitialValue(
     if not (name) and initialValue and "Name" in initialValue:
         name = initialValue["Name"] + "InitialValue"
     obj = doc.addObject("Fem::ConstraintPython", name)
-    from femobjects import _FemConstraintGeneric
-    _FemConstraintGeneric._FemConstraintGeneric(obj)
+    from femobjects import constraint_generic
+    constraint_generic.ConstraintGeneric(obj)
     obj.Settings = initialValue
     obj.Category = "InitialValue"
     if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemConstraintGeneric
-        _ViewProviderFemConstraintGeneric._ViewProvider(obj.ViewObject)
+        from femviewprovider import view_constraint_generic
+        view_constraint_generic.VPConstraintGeneric(obj.ViewObject)
     return obj
 
 
@@ -118,13 +118,12 @@ def makeConstraintBodyHeatSource(
     """makeConstraintBodyHeatSource(document, [name]):
     makes a Fem ConstraintBodyHeatSource object"""
     obj = doc.addObject("Fem::ConstraintPython", name)
-    from femobjects import _FemConstraintBodyHeatSource
-    _FemConstraintBodyHeatSource.Proxy(obj)
+    from femobjects import constraint_bodyheatsource
+    constraint_bodyheatsource.ConstraintBodyHeatSource(obj)
     if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemConstraintBodyHeatSource
-        _ViewProviderFemConstraintBodyHeatSource.ViewProxy(obj.ViewObject)
+        from femviewprovider import view_constraint_bodyheatsource
+        view_constraint_bodyheatsource.VPConstraintBodyHeatSource(obj.ViewObject)
     return obj
-
 
 def makeConstraintContact(
     doc,
