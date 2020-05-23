@@ -57,6 +57,7 @@ public:
 protected Q_SLOTS:
     void onChangeParameterSet(int);
     void on_buttonFind_clicked();
+    void on_findGroupLE_textChanged(const QString &SearchStr);
     void on_buttonSaveToDisk_clicked();
 
     void onGroupSelected(QTreeWidgetItem *);
@@ -73,6 +74,12 @@ protected:
     QTreeWidget* paramValue;
     Ui_DlgParameter* ui;
     QPointer<DlgParameterFind> finder;
+
+private:
+    QFont defaultFont;
+    QBrush defaultColor;
+    QFont boldFont;
+    QList<QTreeWidgetItem*> foundList;
 };
 
 // --------------------------------------------------------------------
@@ -152,6 +159,7 @@ protected:
     void contextMenuEvent ( QContextMenuEvent* event );
     /** Invokes onDeleteSelectedItem() if the "Del" key was pressed. */
     void keyPressEvent (QKeyEvent* event);
+    void resizeEvent(QResizeEvent*);
 
 protected Q_SLOTS:
     /** Changes the value of the leaf of the selected item. */

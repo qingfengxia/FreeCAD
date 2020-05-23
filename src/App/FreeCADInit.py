@@ -456,7 +456,7 @@ class FCADLogger(object):
                          function, and you want to show the callers source
                          location, then set frame to one.
 
-            * args: tuple for postiional arguments to be passed to
+            * args: tuple for positional arguments to be passed to
                     string.format()
 
             * kargs: dictionary for keyword arguments to be passed to
@@ -816,6 +816,7 @@ App.Units.Power         = App.Units.Unit(2,1,-3)
 App.Units.SpecificEnergy               = App.Units.Unit(2,0,-2)
 App.Units.ThermalConductivity          = App.Units.Unit(1,1,-3,0,-1)
 App.Units.ThermalExpansionCoefficient  = App.Units.Unit(0,0,0,0,-1)
+App.Units.VolumetricThermalExpansionCoefficient  = App.Units.Unit(0,0,0,0,-1)
 App.Units.SpecificHeat                 = App.Units.Unit(2,0,-2,0,-1)
 App.Units.ThermalTransferCoefficient   = App.Units.Unit(0,1,-3,0,-1)
 App.Units.HeatFlux                     = App.Units.Unit(0,1,-3,0,0)

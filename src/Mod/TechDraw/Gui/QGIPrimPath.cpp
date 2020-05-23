@@ -35,10 +35,12 @@
 #include <App/Material.h>
 #include <Base/Console.h>
 
+#include "PreferencesGui.h"
 #include "QGIPrimPath.h"
 #include "QGIView.h"
 
 using namespace TechDrawGui;
+using namespace TechDraw;
 
 QGIPrimPath::QGIPrimPath():
     m_width(0),
@@ -164,10 +166,7 @@ QColor QGIPrimPath::getNormalColor()
     if (parent != nullptr) {
         result = parent->getNormalColor();
     } else {
-        Base::Reference<ParameterGrp> hGrp = getParmGroup();
-        App::Color fcColor;
-        fcColor.setPackedValue(hGrp->GetUnsigned("NormalColor", 0x00000000));
-        result = fcColor.asValue<QColor>();
+        result = PreferencesGui::normalQColor();
     }
 
     return result;
@@ -187,10 +186,7 @@ QColor QGIPrimPath::getPreColor()
     if (parent != nullptr) {
         result = parent->getPreColor();
     } else {
-        Base::Reference<ParameterGrp> hGrp = getParmGroup();
-        App::Color fcColor;
-        fcColor.setPackedValue(hGrp->GetUnsigned("PreSelectColor", 0xFFFF0000));
-        result = fcColor.asValue<QColor>();
+        result = PreferencesGui::preselectQColor();
     }
     return result;
 }
@@ -209,10 +205,7 @@ QColor QGIPrimPath::getSelectColor()
     if (parent != nullptr) {
         result = parent->getSelectColor();
     } else {
-        Base::Reference<ParameterGrp> hGrp = getParmGroup();
-        App::Color fcColor;
-        fcColor.setPackedValue(hGrp->GetUnsigned("SelectColor", 0x00FF0000));
-        result = fcColor.asValue<QColor>();
+        result = PreferencesGui::selectQColor();
     }
     return result;
 }
@@ -262,25 +255,20 @@ Qt::PenCapStyle QGIPrimPath::prefCapStyle()
     Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
         .GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/TechDraw/General");
     Qt::PenCapStyle result;
-    //old parameter format UINT
-    unsigned int oldStyle = hGrp->GetUnsigned("EdgeCapStyle", 0xFF);    //0x00 FlatCap, 0x10 SquareCap, 0x20 RoundCap
-    result = (Qt::PenCapStyle) oldStyle;
     int newStyle;
-    if (oldStyle == 0xFF) {              //no old style parm found
-        newStyle = hGrp->GetInt("EdgeCapStyle", 32);    //0x00 FlatCap, 0x10 SquareCap, 0x20 RoundCap
-        switch (newStyle) {
-            case 0:
-                result = (Qt::PenCapStyle) 0x20;   //round;
-                break;
-            case 1:
-                result = (Qt::PenCapStyle) 0x10;   //square;
-                break;
-            case 2:
-                result = (Qt::PenCapStyle) 0x00;   //flat
-                break;
-            default:
-                result = (Qt::PenCapStyle) 0x20;
-        }
+    newStyle = hGrp->GetInt("EdgeCapStyle", 32);    //0x00 FlatCap, 0x10 SquareCap, 0x20 RoundCap
+    switch (newStyle) {
+        case 0:
+            result = (Qt::PenCapStyle) 0x20;   //round;
+            break;
+        case 1:
+            result = (Qt::PenCapStyle) 0x10;   //square;
+            break;
+        case 2:
+            result = (Qt::PenCapStyle) 0x00;   //flat
+            break;
+        default:
+            result = (Qt::PenCapStyle) 0x20;
     }
     return result;
 }

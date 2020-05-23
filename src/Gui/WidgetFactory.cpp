@@ -91,7 +91,8 @@ PyTypeObject** SbkPySide_QtGuiTypes=nullptr;
 // This helps to avoid to include the PySide2 headers since MSVC has a compiler bug when
 // compiling together with std::bitset (https://bugreports.qt.io/browse/QTBUG-72073)
 
-# define SHIBOKEN_FULL_VERSION QT_VERSION_CHECK(SHIBOKEN_MAJOR_VERSION, SHIBOKEN_MINOR_VERSION, SHIBOKEN_MICRO_VERSION)
+// Do not use SHIBOKEN_MICRO_VERSION; it might contain a dot
+# define SHIBOKEN_FULL_VERSION QT_VERSION_CHECK(SHIBOKEN_MAJOR_VERSION, SHIBOKEN_MINOR_VERSION, 0)
 # if (SHIBOKEN_FULL_VERSION >= QT_VERSION_CHECK(5, 12, 0))
 # define HAVE_SHIBOKEN_TYPE_FOR_TYPENAME
 # endif
@@ -384,6 +385,31 @@ QObject* PythonWrapper::toQObject(const Py::Object& pyobject)
 #endif
 
     return 0;
+}
+
+QGraphicsItem* PythonWrapper::toQGraphicsItem(PyObject* pyPtr)
+{
+#if defined (HAVE_SHIBOKEN) && defined(HAVE_PYSIDE)
+    PyTypeObject* type = getPyTypeObjectForTypeName<QObject>();
+    if (type) {
+        if (Shiboken::Object::checkType(pyPtr)) {
+            SbkObject* sbkobject = reinterpret_cast<SbkObject*>(pyPtr);
+            void* cppobject = Shiboken::Object::cppPointer(sbkobject, type);
+            return reinterpret_cast<QGraphicsItem*>(cppobject);
+        }
+    }
+#elif QT_VERSION >= 0x050000
+    // Access shiboken2/PySide2 via Python
+    //
+    void* ptr = qt_getCppPointer(Py::asObject(pyPtr), "shiboken2", "getCppPointer");
+    return reinterpret_cast<QGraphicsItem*>(ptr);
+#else
+    // Access shiboken/PySide via Python
+    //
+    void* ptr = qt_getCppPointer(Py::asObject(pyPtr), "shiboken", "getCppPointer");
+    return reinterpret_cast<QGraphicsItem*>(ptr);
+#endif
+    return nullptr;
 }
 
 Py::Object PythonWrapper::fromQIcon(const QIcon* icon)

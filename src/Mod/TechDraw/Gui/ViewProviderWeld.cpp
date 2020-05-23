@@ -24,6 +24,8 @@
 #include "PreCompiled.h"
 
 #ifndef _PreComp_
+# include <QMessageBox>
+# include <QTextStream>
 #endif
 
 /// Here the FreeCAD includes sorted by Base,App,Gui......
@@ -43,11 +45,12 @@
 #include <Gui/MainWindow.h>
 #include <Gui/Selection.h>
 
+#include "PreferencesGui.h"
 #include "TaskWeldingSymbol.h"
-
 #include "ViewProviderWeld.h"
 
 using namespace TechDrawGui;
+using namespace TechDraw;
 
 PROPERTY_SOURCE(TechDrawGui::ViewProviderWeld, TechDrawGui::ViewProviderDrawingView)
 
@@ -161,20 +164,12 @@ bool ViewProviderWeld::doubleClicked(void)
 
 std::string ViewProviderWeld::prefFontName(void)
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
-                                         .GetGroup("BaseApp")->GetGroup("Preferences")->
-                                          GetGroup("Mod/TechDraw/Labels");
-    std::string fontName = hGrp->GetASCII("LabelFont", "osifont");
-    return fontName;
+    return Preferences::labelFont();
 }
 
 double ViewProviderWeld::prefFontSize(void)
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
-                                         .GetGroup("BaseApp")->GetGroup("Preferences")->
-                                 GetGroup("Mod/TechDraw/Dimensions");
-    double fontSize = hGrp->GetFloat("FontSize", QGIView::DefaultFontSizeInMM);
-    return fontSize;
+    return Preferences::labelFontSizeMM();
 }
 
 double ViewProviderWeld::prefTileTextAdjust(void)
@@ -186,7 +181,37 @@ double ViewProviderWeld::prefTileTextAdjust(void)
     return adjust;
 }
 
+bool ViewProviderWeld::onDelete(const std::vector<std::string> &)
+{
+    // a weld cannot be deleted if it has a tile
 
+    // get childs
+    auto childs = claimChildren();
+
+    if (!childs.empty()) {
+        QString bodyMessage;
+        QTextStream bodyMessageStream(&bodyMessage);
+        bodyMessageStream << qApp->translate("Std_Delete",
+            "You cannot delete this weld symbol because\n it has a tile weld that would become broken.");
+        QMessageBox::warning(Gui::getMainWindow(),
+            qApp->translate("Std_Delete", "Object dependencies"), bodyMessage,
+            QMessageBox::Ok);
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+bool ViewProviderWeld::canDelete(App::DocumentObject *obj) const
+{
+    // deletions of Weld objects don't destroy anything
+    // thus we can pass this action
+    // that the parent LeaderLine cannot be deleted is handled
+    // in its onDelete() function
+    Q_UNUSED(obj)
+    return true;
+}
 
 TechDraw::DrawWeldSymbol* ViewProviderWeld::getViewObject() const
 {

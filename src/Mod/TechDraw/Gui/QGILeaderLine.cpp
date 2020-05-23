@@ -53,9 +53,11 @@
 #include <Mod/TechDraw/App/DrawUtil.h>
 #include <Mod/TechDraw/App/Geometry.h>
 #include <Mod/TechDraw/App/LineGroup.h>
+#include <Mod/TechDraw/App/ArrowPropEnum.h>
 
 #include "Rez.h"
 #include "ZVALUE.h"
+#include "PreferencesGui.h"
 #include "QGIArrow.h"
 #include "ViewProviderLeader.h"
 #include "MDIViewPage.h"
@@ -66,9 +68,8 @@
 
 #include "QGILeaderLine.h"
 
-using namespace TechDraw;
 using namespace TechDrawGui;
-
+using namespace TechDraw;
 
 //**************************************************************
 QGILeaderLine::QGILeaderLine() :
@@ -358,7 +359,12 @@ void QGILeaderLine::draw()
     if ( vp == nullptr ) {
         return;
     }
+
+    double scale = 1.0;
     TechDraw::DrawView* parent = featLeader->getBaseView();
+    if (parent != nullptr) {
+        scale = parent->getScale();
+    }
 
     if (m_editPath->inEdit()) {
         return;
@@ -372,7 +378,6 @@ void QGILeaderLine::draw()
     }
     m_lineStyle = (Qt::PenStyle) vp->LineStyle.getValue();
 
-    double scale = parent->getScale();
     double baseScale = featLeader->getBaseScale();
     double x = Rez::guiX(featLeader->X.getValue());
     double y = - Rez::guiX(featLeader->Y.getValue());
@@ -423,11 +428,11 @@ QPainterPath QGILeaderLine::makeLeaderPath(std::vector<QPointF> qPoints)
     double  endAdjLength(0.0);
     if (qPoints.size() > 1) {
         //make path adjustment to hide leaderline ends behind arrowheads
-        if (featLeader->StartSymbol.getValue() > -1) {
+        if (featLeader->StartSymbol.getValue() != ArrowType::NONE) {
             startAdjLength = QGIArrow::getOverlapAdjust(featLeader->StartSymbol.getValue(),
                                                             QGIArrow::getPrefArrowSize());
         }
-        if (featLeader->EndSymbol.getValue() > -1) {
+        if (featLeader->EndSymbol.getValue() != ArrowType::NONE) {
             endAdjLength = QGIArrow::getOverlapAdjust(featLeader->EndSymbol.getValue(),
                                                       QGIArrow::getPrefArrowSize());
         }
@@ -498,7 +503,7 @@ void QGILeaderLine::setArrows(std::vector<QPointF> pathPoints)
 
     QPointF lastOffset = (pathPoints.back() - pathPoints.front());
 
-    if (featLeader->StartSymbol.getValue() > -1) {
+    if (featLeader->StartSymbol.getValue() != ArrowType::NONE) {
         m_arrow1->setStyle(featLeader->StartSymbol.getValue());
         m_arrow1->setWidth(getLineWidth());
 //        TODO: variable size arrow heads
@@ -520,7 +525,7 @@ void QGILeaderLine::setArrows(std::vector<QPointF> pathPoints)
         m_arrow1->hide();
     }
     
-    if (featLeader->EndSymbol.getValue() > -1) {
+    if (featLeader->EndSymbol.getValue() != ArrowType::NONE) {
         m_arrow2->setStyle(featLeader->EndSymbol.getValue());
         m_arrow2->setWidth(getLineWidth());
         m_arrow2->setDirMode(true);
@@ -576,21 +581,13 @@ TechDraw::DrawLeaderLine* QGILeaderLine::getFeature(void)
 
 double QGILeaderLine::getEdgeFuzz(void) const
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter().GetGroup("BaseApp")->
-                                         GetGroup("Preferences")->GetGroup("Mod/TechDraw/General");
-    double result = hGrp->GetFloat("EdgeFuzz",10.0);
-    return result;
+    return PreferencesGui::edgeFuzz();
 }
 
 QColor QGILeaderLine::getNormalColor()
 {
 //    Base::Console().Message("QGILL::getNormalColor()\n");
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter().
-                                         GetGroup("BaseApp")->GetGroup("Preferences")->
-                                         GetGroup("Mod/TechDraw/LeaderLines");
-    App::Color fcColor;
-    fcColor.setPackedValue(hGrp->GetUnsigned("Color", 0x00000000));
-    m_colNormal = fcColor.asValue<QColor>();
+    m_colNormal = PreferencesGui::leaderQColor();
 
     auto lead( dynamic_cast<TechDraw::DrawLeaderLine*>(getViewObject()) );
     if( lead == nullptr ) {

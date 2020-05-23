@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0" language="it" sourcelanguage="en">
+<TS version="2.1" language="it" sourcelanguage="en">
   <context>
     <name>AttachmentEditor</name>
     <message>
@@ -99,6 +99,11 @@
       <translation>Offset di associazione:</translation>
     </message>
     <message>
+      <location filename="../../../AttachmentEditor/TaskAttachmentEditor.py" line="608"/>
+      <source>Attachment Offset (in local coordinates):</source>
+      <translation>Offset di associazione (in coordinate locali):</translation>
+    </message>
+    <message>
       <location filename="../../../AttachmentEditor/TaskAttachmentEditor.py" line="598"/>
       <source>Attachment Offset (inactive - not attached):</source>
       <translation>Offset di associazione (inattivo - non associato):</translation>
@@ -132,11 +137,6 @@
       <translation>Selezionare prima una forma che sia un compost! Il secondo oggetto selezionato (opzionale) sarà trattato come uno stampino.</translation>
     </message>
     <message>
-      <location filename="../../../CompoundTools/_CommandCompoundFilter.py" line="105"/>
-      <source>Bad selection</source>
-      <translation>Selezione non valida</translation>
-    </message>
-    <message>
       <location filename="../../../CompoundTools/_CommandCompoundFilter.py" line="103"/>
       <source>Computing the result failed with an error: 
 
@@ -146,6 +146,24 @@ Click 'Continue' to create the feature anyway, or 'Abort' to cancel.</source>
       <translation>Calcolo del risultato fallito con un errore: 
 
 {err}
+
+fare clic su 'Continua' per creare comunque la funzione, o 'Annulla' per annullare.</translation>
+    </message>
+    <message>
+      <location filename="../../../CompoundTools/_CommandCompoundFilter.py" line="105"/>
+      <source>Bad selection</source>
+      <translation>Selezione non valida</translation>
+    </message>
+    <message>
+      <location filename="../../../CompoundTools/_CommandCompoundFilter.py" line="106"/>
+      <source>Computing the result failed with an error: 
+
+{errstr}
+
+Click 'Continue' to create the feature anyway, or 'Abort' to cancel.</source>
+      <translation>Il calcolo del risultato è fallito con un errore: 
+
+{errstr}
 
 fare clic su 'Continua' per creare comunque la funzione, o 'Annulla' per annullare.</translation>
     </message>
@@ -1606,7 +1624,7 @@ fare clic su 'Continua' per creare comunque la funzione, o 'Annulla' per annulla
       <location filename="../../Command.cpp" line="2263"/>
       <location filename="../../Command.cpp" line="2264"/>
       <source>Toggle All</source>
-      <translation>Attiva/disattiva tutto</translation>
+      <translation>Attiva/disattiva tutte le misure</translation>
     </message>
   </context>
   <context>
@@ -2256,7 +2274,7 @@ fare clic su 'Continua' per creare comunque la funzione, o 'Annulla' per annulla
     <message>
       <location filename="../../Command.cpp" line="1990"/>
       <source>Create a ruled surface from either two Edges or two wires</source>
-      <translation>Crea una superficie rigata da due spigoli o due polilinee</translation>
+      <translation>Crea una superficie rigata tra due spigoli o due polilinee, cioè una superficie di tipo mesh a maglie poligonali</translation>
     </message>
   </context>
   <context>
@@ -3854,7 +3872,7 @@ Selezionare prima uno o più spigoli.</translation>
       <source>Maximum angular deflection</source>
       <translation>Massima deflessione angolare</translation>
     </message>
-    <message utf8="true">
+    <message>
       <location filename="../../DlgSettings3DViewPart.ui" line="107"/>
       <source> °</source>
       <translation> °</translation>
@@ -4852,7 +4870,7 @@ Do you want to continue?</source>
     <message>
       <location filename="../../CommandSimple.cpp" line="121"/>
       <source>Enter tolerance for sewing shape:</source>
-      <translation>Inserisci la tolleranza per la forma di cucitura:</translation>
+      <translation>Inserire la tolleranza per cucire la forma:</translation>
     </message>
     <message>
       <location filename="../../TaskAttacher.cpp" line="71"/>

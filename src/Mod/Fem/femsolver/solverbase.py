@@ -1,5 +1,8 @@
 # ***************************************************************************
 # *   Copyright (c) 2017 Markus Hovorka <m.hovorka@live.de>                 *
+# *   Copyright (c) 2017 Bernd Hahnebach <bernd@bimstatik.org>              *
+# *                                                                         *
+# *   This file is part of the FreeCAD CAx development system.              *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -26,15 +29,17 @@ __url__ = "http://www.freecadweb.org"
 ## \addtogroup FEM
 #  @{
 
-from PySide import QtGui
 
 import FreeCAD as App
-from femtools.errors import MustSaveError, DirectoryDoesNotExistError
+
 from . import run
+from femtools.errors import MustSaveError
+from femtools.errors import DirectoryDoesNotExistError
 
 if App.GuiUp:
+    from PySide import QtGui
     import FreeCADGui as Gui
-    from femguiobjects import _TaskPanelFemSolverControl
+    from . import solver_taskpanel
 
 
 class Proxy(object):
@@ -100,7 +105,7 @@ class ViewProxy(object):
                 error_message
             )
             return False
-        task = _TaskPanelFemSolverControl.ControlTaskPanel(machine)
+        task = solver_taskpanel.ControlTaskPanel(machine)
         Gui.Control.showDialog(task)
         return True
 
@@ -110,7 +115,7 @@ class ViewProxy(object):
     def doubleClicked(self, vobj):
         if Gui.Control.activeDialog():
             Gui.Control.closeDialog()
-        Gui.ActiveDocument.setEdit(vobj.Object.Name)
+        vobj.Document.setEdit(vobj.Object.Name)
         return True
 
     def attach(self, vobj):

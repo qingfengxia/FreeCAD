@@ -79,6 +79,10 @@ class TechDrawExport DrawUtil {
         static bool isFirstVert(TopoDS_Edge e, TopoDS_Vertex v, double tolerance = VERTEXTOLERANCE);
         static bool isLastVert(TopoDS_Edge e, TopoDS_Vertex v, double tolerance = VERTEXTOLERANCE);
         static bool fpCompare(const double& d1, const double& d2, double tolerance = FLT_EPSILON);
+        static std::pair<Base::Vector3d, Base::Vector3d> boxIntersect2d(Base::Vector3d point,
+                                                                        Base::Vector3d dir,
+                                                                        double xRange,
+                                                                        double yRange) ;
         static Base::Vector3d vertex2Vector(const TopoDS_Vertex& v);
         static std::string formatVector(const Base::Vector3d& v);
         static std::string formatVector(const gp_Dir& v);
@@ -110,6 +114,7 @@ class TechDrawExport DrawUtil {
         static std::string shapeToString(TopoDS_Shape s);
         static TopoDS_Shape shapeFromString(std::string s);
         static Base::Vector3d invertY(Base::Vector3d v);
+        static QPointF invertY(QPointF p);
         static std::vector<std::string> split(std::string csvLine);
         static std::vector<std::string> tokenize(std::string csvLine, std::string delimiter = ",$$$,");
         static App::Color pyTupleToColor(PyObject* pColor);
@@ -156,6 +161,7 @@ class TechDrawExport DrawUtil {
                                                           double arcBaseAngle, double arcRotation,
                                                           const Base::BoundBox2d &rectangle,
                                                           std::vector<Base::Vector2d> &intersections);
+        static void copyFile(std::string inSpec, std::string outSpec);
 
         //debugging routines
         static void dumpVertexes(const char* text, const TopoDS_Shape& s);

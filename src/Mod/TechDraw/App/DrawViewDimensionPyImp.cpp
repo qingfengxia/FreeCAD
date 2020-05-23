@@ -42,6 +42,16 @@ std::string DrawViewDimensionPy::representation(void) const
 {
     return std::string("<DrawViewDimension object>");
 }
+
+PyObject* DrawViewDimensionPy::getRawValue(PyObject* args)
+{
+    (void) args;
+    DrawViewDimension* dvd = getDrawViewDimensionPtr();
+    double val = dvd->getDimValue();
+    PyObject* pyVal = PyFloat_FromDouble(val);
+    return pyVal;
+}
+
 PyObject* DrawViewDimensionPy::getText(PyObject* args)
 {
     (void) args;
@@ -99,6 +109,16 @@ PyObject* DrawViewDimensionPy::getAnglePoints(PyObject* args)
     return ret;
 }
 
+PyObject* DrawViewDimensionPy::getArrowPositions(PyObject* args)
+{
+    (void) args;
+    DrawViewDimension* dvd = getDrawViewDimensionPtr();
+    pointPair pts = dvd->getArrowPositions();
+    PyObject* ret = PyList_New(0);
+    PyList_Append(ret,new Base::VectorPy(new Base::Vector3d(pts.first)));
+    PyList_Append(ret,new Base::VectorPy(new Base::Vector3d(pts.second)));
+    return ret;
+}
 PyObject *DrawViewDimensionPy::getCustomAttributes(const char* /*attr*/) const
 {
     return 0;

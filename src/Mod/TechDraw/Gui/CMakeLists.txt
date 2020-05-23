@@ -44,11 +44,13 @@ set(TechDrawGui_MOC_HDRS
     QGIViewDimension.h
     QGIViewBalloon.h
     TaskProjGroup.h
-    DlgPrefsTechDraw1Imp.h
-    DlgPrefsTechDraw2Imp.h
-    DlgPrefsTechDraw3Imp.h
-    DlgPrefsTechDraw4Imp.h
-    DlgPrefsTechDraw5Imp.h
+    DlgPrefsTechDrawGeneralImp.h
+    DlgPrefsTechDrawScaleImp.h
+    DlgPrefsTechDrawAnnotationImp.h
+    DlgPrefsTechDrawDimensionsImp.h
+    DlgPrefsTechDrawColorsImp.h
+    DlgPrefsTechDrawAdvancedImp.h
+    DlgPrefsTechDrawHLRImp.h
     TaskLinkDim.h
     DlgTemplateField.h
     TaskSectionView.h
@@ -70,6 +72,8 @@ set(TechDrawGui_MOC_HDRS
     QGIWeldSymbol.h
     SymbolChooser.h
     TaskActiveView.h
+    TaskDetail.h
+    QGIGhostHighlight.h
 )
 
 fc_wrap_cpp(TechDrawGui_MOC_SRCS ${TechDrawGui_MOC_HDRS})
@@ -82,11 +86,13 @@ else()
 endif()
 
 set(TechDrawGui_UIC_SRCS
-    DlgPrefsTechDraw1.ui
-    DlgPrefsTechDraw2.ui
-    DlgPrefsTechDraw3.ui
-    DlgPrefsTechDraw4.ui
-    DlgPrefsTechDraw5.ui
+    DlgPrefsTechDrawGeneral.ui
+    DlgPrefsTechDrawScale.ui
+    DlgPrefsTechDrawAnnotation.ui
+    DlgPrefsTechDrawDimensions.ui
+    DlgPrefsTechDrawColors.ui
+    DlgPrefsTechDrawAdvanced.ui
+    DlgPrefsTechDrawHLR.ui
     TaskProjGroup.ui
     TaskLinkDim.ui
     DlgTemplateField.ui
@@ -98,12 +104,12 @@ set(TechDrawGui_UIC_SRCS
     TaskBalloon.ui
     TaskCosVertex.ui
     TaskCenterLine.ui
-    TaskCL2Lines.ui
     TaskLineDecor.ui
     TaskRestoreLines.ui
     TaskWeldingSymbol.ui
     SymbolChooser.ui
     TaskActiveView.ui
+    TaskDetail.ui
 )
 
 if(BUILD_QT5)
@@ -143,21 +149,27 @@ SET(TechDrawGui_SRCS
     TaskProjGroup.ui
     TaskProjGroup.cpp
     TaskProjGroup.h
-    DlgPrefsTechDraw1.ui
-    DlgPrefsTechDraw1Imp.cpp
-    DlgPrefsTechDraw1Imp.h
-    DlgPrefsTechDraw2.ui
-    DlgPrefsTechDraw2Imp.cpp
-    DlgPrefsTechDraw2Imp.h
-    DlgPrefsTechDraw3.ui
-    DlgPrefsTechDraw3Imp.cpp
-    DlgPrefsTechDraw3Imp.h
-    DlgPrefsTechDraw4.ui
-    DlgPrefsTechDraw4Imp.cpp
-    DlgPrefsTechDraw4Imp.h
-    DlgPrefsTechDraw5.ui
-    DlgPrefsTechDraw5Imp.cpp
-    DlgPrefsTechDraw5Imp.h
+    DlgPrefsTechDrawGeneral.ui
+    DlgPrefsTechDrawGeneralImp.cpp
+    DlgPrefsTechDrawGeneralImp.h
+    DlgPrefsTechDrawScale.ui
+    DlgPrefsTechDrawScaleImp.cpp
+    DlgPrefsTechDrawScaleImp.h
+    DlgPrefsTechDrawAnnotation.ui
+    DlgPrefsTechDrawAnnotationImp.cpp
+    DlgPrefsTechDrawAnnotationImp.h
+    DlgPrefsTechDrawDimensions.ui
+    DlgPrefsTechDrawDimensionsImp.cpp
+    DlgPrefsTechDrawDimensionsImp.h
+    DlgPrefsTechDrawColors.ui
+    DlgPrefsTechDrawColorsImp.cpp
+    DlgPrefsTechDrawColorsImp.h
+    DlgPrefsTechDrawAdvanced.ui
+    DlgPrefsTechDrawAdvancedImp.cpp
+    DlgPrefsTechDrawAdvancedImp.h
+    DlgPrefsTechDrawHLR.ui
+    DlgPrefsTechDrawHLRImp.cpp
+    DlgPrefsTechDrawHLRImp.h
     TaskLinkDim.ui
     TaskLinkDim.cpp
     TaskLinkDim.h
@@ -189,7 +201,6 @@ SET(TechDrawGui_SRCS
     TaskLineDecor.cpp
     TaskLineDecor.h
     TaskRestoreLines.ui
-    TaskCL2Lines.ui
     TaskWeldingSymbol.ui
     TaskWeldingSymbol.cpp
     TaskWeldingSymbol.h
@@ -205,6 +216,11 @@ SET(TechDrawGui_SRCS
     TaskActiveView.h
     Grabber3d.cpp
     Grabber3d.h
+    TaskDetail.ui
+    TaskDetail.cpp
+    TaskDetail.h
+    PreferencesGui.cpp
+    PreferencesGui.h
 )
 
 SET(TechDrawGuiView_SRCS
@@ -301,6 +317,8 @@ SET(TechDrawGuiView_SRCS
     TemplateTextField.cpp
     TemplateTextField.h
     ZVALUE.h
+    QGIGhostHighlight.cpp
+    QGIGhostHighlight.h
 )
 SET(TechDrawGuiViewProvider_SRCS
     ViewProviderPage.cpp
@@ -365,10 +383,10 @@ SET(TechDrawGuiTaskDlgs_SRCS
     TaskCenterLine.ui
     TaskLineDecor.ui
     TaskRestoreLines.ui
-    TaskCL2Lines.ui
     TaskWeldingSymbol.ui
     SymbolChooser.ui
     TaskActiveView.ui
+    TaskDetail.ui
 )
 SOURCE_GROUP("TaskDialogs" FILES ${TechDrawGuiTaskDlgs_SRCS})
 

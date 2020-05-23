@@ -9,18 +9,17 @@
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
-# *   FreeCAD is distributed in the hope that it will be useful,            *
+# *   This program is distributed in the hope that it will be useful,       *
 # *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
 # *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
 # *   GNU Library General Public License for more details.                  *
 # *                                                                         *
 # *   You should have received a copy of the GNU Library General Public     *
-# *   License along with FreeCAD; if not, write to the Free Software        *
+# *   License along with this program; if not, write to the Free Software   *
 # *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-
 
 # to run the example use:
 """
@@ -29,10 +28,12 @@ setup()
 
 """
 
-
 import FreeCAD
-import ObjectsFem
+
 import Fem
+import ObjectsFem
+from BOPTools import SplitFeatures
+from CompoundTools import CompoundFilter
 
 mesh_name = "Mesh"  # needs to be Mesh to work with unit tests
 
@@ -49,39 +50,37 @@ def setup(doc=None, solvertype="ccxtools"):
     if doc is None:
         doc = init_doc()
 
-    # part
-    # create a CompSolid of two Boxes extract the CompSolid
-    # we are able to remesh if needed
+    # geometry objects
+    # two boxes
     boxlow = doc.addObject("Part::Box", "BoxLower")
     boxupp = doc.addObject("Part::Box", "BoxUpper")
     boxupp.Placement.Base = (0, 0, 10)
 
-    # for BooleanFragments Occt >=6.9 is needed
-    """
-    import BOPTools.SplitFeatures
-    bf = BOPTools.SplitFeatures.makeBooleanFragments(name="BooleanFragments")
+    # boolean fragment of the two boxes
+    bf = SplitFeatures.makeBooleanFragments(name="BooleanFragments")
     bf.Objects = [boxlow, boxupp]
     bf.Mode = "CompSolid"
-    self.active_doc.recompute()
+    doc.recompute()
     bf.Proxy.execute(bf)
     bf.purgeTouched()
-    for obj in bf.ViewObject.Proxy.claimChildren():
-        obj.ViewObject.hide()
-    self.active_doc.recompute()
-    import CompoundTools.CompoundFilter
-    cf = CompoundTools.CompoundFilter.makeCompoundFilter(name="MultiMatCompSolid")
-    cf.Base = bf
-    cf.FilterType = "window-volume"
-    cf.Proxy.execute(cf)
-    cf.purgeTouched()
-    cf.Base.ViewObject.hide()
-    """
+    if FreeCAD.GuiUp:
+        for child in bf.ViewObject.Proxy.claimChildren():
+            child.ViewObject.hide()
+    doc.recompute()
+
+    # extract CompSolid by compound filter tool
+    geom_obj = CompoundFilter.makeCompoundFilter(name="MultiMatCompSolid")
+    geom_obj.Base = bf
+    geom_obj.FilterType = "window-volume"
+    geom_obj.Proxy.execute(geom_obj)
+    geom_obj.purgeTouched()
+    if FreeCAD.GuiUp:
+        geom_obj.Base.ViewObject.hide()
     doc.recompute()
 
     if FreeCAD.GuiUp:
-        import FreeCADGui
-        FreeCADGui.ActiveDocument.activeView().viewAxonometric()
-        FreeCADGui.SendMsgToActiveView("ViewFit")
+        geom_obj.ViewObject.Document.activeView().viewAxonometric()
+        geom_obj.ViewObject.Document.activeView().fitAll()
 
     # analysis
     analysis = ObjectsFem.makeAnalysis(doc, "Analysis")
@@ -132,17 +131,13 @@ def setup(doc=None, solvertype="ccxtools"):
     fixed_constraint = analysis.addObject(
         ObjectsFem.makeConstraintFixed(doc, "ConstraintFixed")
     )[0]
-    # fixed_constraint.References = [(cf, "Face3")]
-    fixed_constraint.References = [(boxlow, "Face5")]
+    fixed_constraint.References = [(geom_obj, "Face5")]
 
     # pressure_constraint
     pressure_constraint = analysis.addObject(
         ObjectsFem.makeConstraintPressure(doc, "ConstraintPressure")
     )[0]
-    # pressure_constraint.References = [(cf, "Face3")]
-    pressure_constraint.References = [(boxlow, "Face5")]
-    # pressure_constraint.References = [(cf, "Face9")]
-    pressure_constraint.References = [(boxupp, "Face6")]
+    pressure_constraint.References = [(geom_obj, "Face11")]
     pressure_constraint.Pressure = 1000.0
     pressure_constraint.Reversed = False
 

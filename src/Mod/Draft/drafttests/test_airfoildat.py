@@ -1,5 +1,3 @@
-"""Unit test for the Draft module, Airfoil DAT import and export tests.
-"""
 # ***************************************************************************
 # *   Copyright (c) 2013 Yorik van Havre <yorik@uncreated.net>              *
 # *   Copyright (c) 2019 Eliud Cabrera Castillo <e.cabrera-castillo@tum.de> *
@@ -23,14 +21,14 @@
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
+"""Unit test for the Draft Workbench, Airfoil DAT import and export tests."""
 
 import os
 import unittest
 import FreeCAD as App
 import Draft
-from .auxiliary import _msg
-from .auxiliary import _draw_header
-from .auxiliary import _fake_function
+import drafttests.auxiliary as aux
+from draftutils.messages import _msg
 
 
 class DraftAirfoilDAT(unittest.TestCase):
@@ -42,7 +40,7 @@ class DraftAirfoilDAT(unittest.TestCase):
         This is executed before every test, so we create a document
         to hold the objects.
         """
-        _draw_header()
+        aux.draw_header()
         self.doc_name = self.__class__.__name__
         if App.ActiveDocument:
             if App.ActiveDocument.Name != self.doc_name:
@@ -64,8 +62,8 @@ class DraftAirfoilDAT(unittest.TestCase):
         _msg("  file={}".format(in_file))
         _msg("  exists={}".format(os.path.exists(in_file)))
 
-        Draft.import_AirfoilDAT = _fake_function
-        obj = Draft.import_AirfoilDAT(in_file)
+        Draft.import_airfoildat = aux.fake_function
+        obj = Draft.import_airfoildat(in_file)
         self.assertTrue(obj, "'{}' failed".format(operation))
 
     def test_export_airfoildat(self):
@@ -78,8 +76,8 @@ class DraftAirfoilDAT(unittest.TestCase):
         _msg("  file={}".format(out_file))
         _msg("  exists={}".format(os.path.exists(out_file)))
 
-        Draft.export_importAirfoilDAT = _fake_function
-        obj = Draft.export_importAirfoilDAT(out_file)
+        Draft.export_airfoildat = aux.fake_function
+        obj = Draft.export_airfoildat(out_file)
         self.assertTrue(obj, "'{}' failed".format(operation))
 
     def tearDown(self):

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0" language="it" sourcelanguage="en">
+<TS version="2.1" language="it" sourcelanguage="en">
   <context>
     <name>CmdCreateSpreadsheet</name>
     <message>
@@ -331,10 +331,6 @@
       <translation>Esporta file</translation>
     </message>
     <message>
-      <source>Cell contents</source>
-      <translation>Contenuto della cella</translation>
-    </message>
-    <message>
       <source>Show spreadsheet</source>
       <translation>Visualizza il foglio di calcolo</translation>
     </message>
@@ -353,6 +349,20 @@
     <message>
       <source>Sets the Spreadsheet cell(s) background color</source>
       <translation>Imposta il colore di sfondo delle celle del foglio di calcolo</translation>
+    </message>
+    <message>
+      <source>Spreadsheet</source>
+      <translation>Foglio di calcolo</translation>
+    </message>
+    <message>
+      <source>Spreadsheet does not support range selection when pasting.
+Please select one cell only.</source>
+      <translation>La scheda Spreadsheet non supporta la selezione dell'intervallo in fase di incolla.
+Si prega di selezionare una sola cella.</translation>
+    </message>
+    <message>
+      <source>Copy &amp; Paste failed</source>
+      <translation>Copia &amp; Incolla fallita</translation>
     </message>
   </context>
   <context>
@@ -439,6 +449,18 @@
     <message>
       <source>&amp;Contents</source>
       <translation>&amp;Contenuto</translation>
+    </message>
+    <message>
+      <source>&amp;Alias</source>
+      <translation type="unfinished">&amp;Alias</translation>
+    </message>
+    <message>
+      <source>Refer to cell by alias, for example
+Spreadsheet.my_alias_name instead of Spreadsheet.B1
+       </source>
+      <translation type="unfinished">Refer to cell by alias, for example
+Spreadsheet.my_alias_name instead of Spreadsheet.B1
+       </translation>
     </message>
   </context>
   <context>

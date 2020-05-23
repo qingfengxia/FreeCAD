@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0" language="fr" sourcelanguage="en">
+<TS version="2.1" language="fr" sourcelanguage="en">
   <context>
     <name>CmdCreateSpreadsheet</name>
     <message>
@@ -331,10 +331,6 @@
       <translation>Exporter un fichier</translation>
     </message>
     <message>
-      <source>Cell contents</source>
-      <translation>Contenu de la cellule</translation>
-    </message>
-    <message>
       <source>Show spreadsheet</source>
       <translation>Montrer la feuille de calcul</translation>
     </message>
@@ -353,6 +349,20 @@
     <message>
       <source>Sets the Spreadsheet cell(s) background color</source>
       <translation>Définit la couleur d'arrière-plan des cellules de la feuille de calcul</translation>
+    </message>
+    <message>
+      <source>Spreadsheet</source>
+      <translation>Tableur (le module) / Feuille de calcul (l'objet créé par le Tableur)</translation>
+    </message>
+    <message>
+      <source>Spreadsheet does not support range selection when pasting.
+Please select one cell only.</source>
+      <translation>La feuille de calcul ne prend pas en charge la sélection des plages lors du collage.
+Veuillez sélectionner une seule cellule.</translation>
+    </message>
+    <message>
+      <source>Copy &amp; Paste failed</source>
+      <translation>Copier-coller a failli</translation>
     </message>
   </context>
   <context>
@@ -439,6 +449,18 @@
     <message>
       <source>&amp;Contents</source>
       <translation>&amp;Contenu</translation>
+    </message>
+    <message>
+      <source>&amp;Alias</source>
+      <translation type="unfinished">&amp;Alias</translation>
+    </message>
+    <message>
+      <source>Refer to cell by alias, for example
+Spreadsheet.my_alias_name instead of Spreadsheet.B1
+       </source>
+      <translation type="unfinished">Refer to cell by alias, for example
+Spreadsheet.my_alias_name instead of Spreadsheet.B1
+       </translation>
     </message>
   </context>
   <context>

@@ -9,18 +9,17 @@
 # *   the License, or (at your option) any later version.                   *
 # *   for detail see the LICENCE text file.                                 *
 # *                                                                         *
-# *   FreeCAD is distributed in the hope that it will be useful,            *
+# *   This program is distributed in the hope that it will be useful,       *
 # *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
 # *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
 # *   GNU Library General Public License for more details.                  *
 # *                                                                         *
 # *   You should have received a copy of the GNU Library General Public     *
-# *   License along with FreeCAD; if not, write to the Free Software        *
+# *   License along with this program; if not, write to the Free Software   *
 # *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  *
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
-
 
 # to run the examples copy the code:
 """
@@ -33,6 +32,7 @@ doc = run_boxanalysisfrequency()
 doc = run_ccx_cantileverfaceload()
 doc = run_ccx_cantilevernodeload()
 doc = run_ccx_cantileverprescribeddisplacement()
+doc = setup_cantileverhexa20faceload()
 doc = run_constraint_contact_shell_shell()
 doc = run_constraint_contact_solid_solid()
 doc = run_constraint_tie()
@@ -66,7 +66,7 @@ def run_analysis(doc, base_name, filepath=""):
     # print([obj.Name for obj in doc.Objects])
 
     # filepath
-    if filepath is "":
+    if filepath == "":
         filepath = join(gettmp(), "FEM_examples")
     if not exists(filepath):
         makedirs(filepath)
@@ -77,7 +77,7 @@ def run_analysis(doc, base_name, filepath=""):
         from femtools.femutils import is_derived_from
         if (
             is_derived_from(m, "Fem::FemSolverObjectPython")
-            and m.Proxy.Type is not "Fem::FemSolverCalculixCcxTools"
+            and m.Proxy.Type != "Fem::SolverCcxTools"
         ):
             solver = m
             break
@@ -168,6 +168,21 @@ def run_ccx_cantileverprescribeddisplacement(solver=None, base_name=None):
 
     if base_name is None:
         base_name = "CantileverPrescribedDisplacement"
+        if solver is not None:
+            base_name += "_" + solver
+    run_analysis(doc, base_name)
+    doc.recompute()
+
+    return doc
+
+
+def setup_cantileverhexa20faceload(solver=None, base_name=None):
+
+    from .ccx_cantilever_std import setup_cantileverhexa20faceload as setup
+    doc = setup()
+
+    if base_name is None:
+        base_name = "CantilverHexa20FaceLoad"
         if solver is not None:
             base_name += "_" + solver
     run_analysis(doc, base_name)

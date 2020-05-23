@@ -113,15 +113,14 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
           << "FEM_ConstraintTie"
           << "FEM_ConstraintTransform"
           << "Separator"
+          << "FEM_ConstraintAcceleration"
           << "FEM_ConstraintForce"
           << "FEM_ConstraintPressure"
-          << "FEM_ConstraintAcceleration"
           << "FEM_ConstraintSelfWeight";
 
     Gui::ToolBarItem* thermal = new Gui::ToolBarItem(root);
     thermal->setCommand("Thermal Constraints");
     *thermal << "FEM_ConstraintInitialTemperature"
-             << "FEM_InitialPressure"
              << "Separator"
              << "FEM_ConstraintTemperature"
              << "FEM_ConstraintHeatflux";
@@ -141,7 +140,8 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
 
     Gui::ToolBarItem* fluid = new Gui::ToolBarItem(root);
     fluid->setCommand("Fluid Constraints");
-    *fluid << "FEM_ConstraintInitialFlowVelocity"
+    *fluid << "FEM_ConstraintInitialPressure"
+           << "FEM_ConstraintInitialFlowVelocity"
            << "Separator"
            << "FEM_ConstraintFluidBoundary"
            << "FEM_ConstraintFlowVelocity";
@@ -156,11 +156,11 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
            << "FEM_SolverCalculiX"
            << "FEM_SolverElmer"
            << "Separator"
-           << "FEM_EquationHeat"
            << "FEM_EquationElasticity"
-           << "FEM_EquationFluxsolver"
            << "FEM_EquationElectrostatic"
            << "FEM_EquationFlow"
+           << "FEM_EquationFluxsolver"
+           << "FEM_EquationHeat"
            << "Separator"
            << "FEM_SolverControl"
            << "FEM_SolverRun";
@@ -174,13 +174,13 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
               << "FEM_PostApplyChanges"
               << "FEM_PostPipelineFromResult"
               << "Separator"
-              << "FEM_PostCreateWarpVectorFilter"
-              << "FEM_PostCreateScalarClipFilter"
-              << "FEM_PostCreateCutFilter"
-              << "FEM_PostCreateClipFilter"
-              << "FEM_PostCreateDataAlongLineFilter"
-              << "FEM_PostCreateLinearizedStressesFilter"
-              << "FEM_PostCreateDataAtPointFilter"
+              << "FEM_PostFilterWarp"
+              << "FEM_PostFilterClipScalar"
+              << "FEM_PostFilterCutFunction"
+              << "FEM_PostFilterClipRegion"
+              << "FEM_PostFilterDataAlongLine"
+              << "FEM_PostFilterLinearizedStresses"
+              << "FEM_PostFilterDataAtPoint"
               << "Separator"
               << "FEM_PostCreateFunctions";
 #endif
@@ -226,10 +226,10 @@ Gui::MenuItem* Workbench::setupMenuBar() const
           << "FEM_ConstraintTie"
           << "FEM_ConstraintTransform"
           << "Separator"
+          << "FEM_ConstraintAcceleration"
           << "FEM_ConstraintForce"
           << "FEM_ConstraintPressure"
           << "FEM_ConstraintSelfWeight"
-          << "FEM_ConstraintAcceleration"
           << "Separator"
           << "FEM_ConstraintBearing"
           << "FEM_ConstraintGear"
@@ -245,7 +245,7 @@ Gui::MenuItem* Workbench::setupMenuBar() const
 
     Gui::MenuItem* fluid = new Gui::MenuItem;
     fluid->setCommand("&Fluid Constraints");
-    *fluid << "FEM_InitialPressure"
+    *fluid << "FEM_ConstraintInitialPressure"
            << "FEM_ConstraintInitialFlowVelocity"
            << "Separator"
            << "FEM_ConstraintFluidBoundary"
@@ -287,11 +287,12 @@ Gui::MenuItem* Workbench::setupMenuBar() const
            << "FEM_SolverElmer"
            << "FEM_SolverZ88"
            << "Separator"
-           << "FEM_EquationHeat"
+
            << "FEM_EquationElasticity"
            << "FEM_EquationElectrostatic"
-           << "FEM_EquationFluxsolver"
            << "FEM_EquationFlow"
+           << "FEM_EquationFluxsolver"
+           << "FEM_EquationHeat"
            << "Separator"
            << "FEM_SolverControl"
            << "FEM_SolverRun";
@@ -306,13 +307,13 @@ Gui::MenuItem* Workbench::setupMenuBar() const
              << "FEM_PostApplyChanges"
              << "FEM_PostPipelineFromResult"
              << "Separator"
-             << "FEM_PostCreateWarpVectorFilter"
-             << "FEM_PostCreateScalarClipFilter"
-             << "FEM_PostCreateCutFilter"
-             << "FEM_PostCreateClipFilter"
-             << "FEM_PostCreateDataAlongLineFilter"
-             << "FEM_PostCreateLinearizedStressesFilter"
-             << "FEM_PostCreateDataAtPointFilter"
+             << "FEM_PostFilterWarp"
+             << "FEM_PostFilterClipScalar"
+             << "FEM_PostFilterCutFunction"
+             << "FEM_PostFilterClipRegion"
+             << "FEM_PostFilterDataAlongLine"
+             << "FEM_PostFilterLinearizedStresses"
+             << "FEM_PostFilterDataAtPoint"
              << "Separator"
              << "FEM_PostCreateFunctions";
 #endif

@@ -64,7 +64,7 @@ OUTPUT_HEADER = True
 OUTPUT_LINE_NUMBERS = False
 SHOW_EDITOR = True
 MODAL = False  # if true commands are suppressed if the same as previous line.
-USE_TLO = True # if true G43 will be output following tool changes 
+USE_TLO = True # if true G43 will be output following tool changes
 OUTPUT_DOUBLES = True  # if false duplicate axis values are suppressed if the same as previous line.
 COMMAND_SPACE = " "
 LINENR = 100  # line number starting value
@@ -153,7 +153,6 @@ def processArguments(argstring):
 
     return True
 
-
 def export(objectslist, filename, argstring):
     # pylint: disable=global-statement
     if not processArguments(argstring):
@@ -185,6 +184,14 @@ def export(objectslist, filename, argstring):
 
     for obj in objectslist:
 
+        # Skip inactive operations
+        if hasattr(obj, 'Active'):
+            if not obj.Active:
+                continue
+        if hasattr(obj, 'Base') and hasattr(obj.Base, 'Active'):
+            if not obj.Base.Active:
+                continue
+
         # fetch machine details
         job = PathUtils.findParentJob(obj)
 
@@ -210,16 +217,22 @@ def export(objectslist, filename, argstring):
         for line in PRE_OPERATION.splitlines(True):
             gcode += linenumber() + line
 
+        # get coolant mode
+        coolantMode = 'None'
+        if hasattr(obj, "CoolantMode") or hasattr(obj, 'Base') and  hasattr(obj.Base, "CoolantMode"):
+            if hasattr(obj, "CoolantMode"):
+                coolantMode = obj.CoolantMode
+            else:
+                coolantMode = obj.Base.CoolantMode
+
         # turn coolant on if required
-        if hasattr(obj, "CoolantMode"):
-            coolantMode = obj.CoolantMode
-            if OUTPUT_COMMENTS:
-                if not coolantMode == 'None':
-                    gcode += linenumber() + '(Coolant On:' + coolantMode + ')\n'
-            if coolantMode == 'Flood':
-                gcode  += linenumber() + 'M8' + '\n'
-            if coolantMode == 'Mist':
-                gcode += linenumber() + 'M7' + '\n'
+        if OUTPUT_COMMENTS:
+            if not coolantMode == 'None':
+                gcode += linenumber() + '(Coolant On:' + coolantMode + ')\n'
+        if coolantMode == 'Flood':
+            gcode  += linenumber() + 'M8' + '\n'
+        if coolantMode == 'Mist':
+            gcode += linenumber() + 'M7' + '\n'
 
         # process the operation gcode
         gcode += parse(obj)
@@ -231,12 +244,10 @@ def export(objectslist, filename, argstring):
             gcode += linenumber() + line
 
         # turn coolant off if required
-        if hasattr(obj, "CoolantMode"):
-            coolantMode = obj.CoolantMode
-            if not coolantMode == 'None':
-                if OUTPUT_COMMENTS:
-                    gcode += linenumber() + '(Coolant Off:' + coolantMode + ')\n'    
-                gcode  += linenumber() +'M9' + '\n'
+        if not coolantMode == 'None':
+            if OUTPUT_COMMENTS:
+                gcode += linenumber() + '(Coolant Off:' + coolantMode + ')\n'
+            gcode  += linenumber() +'M9' + '\n'
 
     # do the post_amble
     if OUTPUT_COMMENTS:
@@ -245,13 +256,15 @@ def export(objectslist, filename, argstring):
         gcode += linenumber() + line
 
     if FreeCAD.GuiUp and SHOW_EDITOR:
-        dia = PostUtils.GCodeEditorDialog()
-        dia.editor.setText(gcode)
-        result = dia.exec_()
-        if result:
-            final = dia.editor.toPlainText()
+        final = gcode
+        if len(gcode) > 100000:
+            print("Skipping editor since output is greater than 100kb")
         else:
-            final = gcode
+            dia = PostUtils.GCodeEditorDialog()
+            dia.editor.setText(gcode)
+            result = dia.exec_()
+            if result:
+                final = dia.editor.toPlainText()
     else:
         final = gcode
 
@@ -354,8 +367,8 @@ def parse(pathobj):
 
             # Check for Tool Change:
             if command == 'M6':
-                # if OUTPUT_COMMENTS:
-                #     out += linenumber() + "(begin toolchange)\n"
+                # stop the spindle
+                out += linenumber() + "M5\n"
                 for line in TOOL_CHANGE.splitlines(True):
                     out += linenumber() + line
 
@@ -378,7 +391,9 @@ def parse(pathobj):
                 # append the line to the final output
                 for w in outstring:
                     out += w + COMMAND_SPACE
-                out = out.strip() + "\n"
+                # Note: Do *not* strip `out`, since that forces the allocation
+                # of a contiguous string & thus quadratic complexity.
+                out += "\n"
 
         return out
 

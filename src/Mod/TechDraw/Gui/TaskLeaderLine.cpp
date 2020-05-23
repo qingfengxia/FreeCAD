@@ -46,10 +46,13 @@
 #include <Mod/TechDraw/App/DrawUtil.h>
 #include <Mod/TechDraw/App/DrawView.h>
 #include <Mod/TechDraw/App/DrawLeaderLine.h>
+#include <Mod/TechDraw/App/ArrowPropEnum.h>
+//#include <Mod/TechDraw/App/Preferences.h>
 
 #include <Mod/TechDraw/Gui/ui_TaskLeaderLine.h>
 
 #include "DrawGuiStd.h"
+#include "PreferencesGui.h"
 #include "QGVPage.h"
 #include "QGIView.h"
 #include "QGIPrimPath.h"
@@ -262,8 +265,12 @@ void TaskLeaderLine::setUiPrimary()
         ui->pbCancelEdit->setEnabled(false);
     }
 
-    int aSize = getPrefArrowStyle() + 1;
-    ui->cboxStartSym->setCurrentIndex(aSize);
+    DrawGuiUtil::loadArrowBox(ui->cboxStartSym);
+    int aStyle = getPrefArrowStyle();
+    ui->cboxStartSym->setCurrentIndex(aStyle);
+
+    DrawGuiUtil::loadArrowBox(ui->cboxEndSym);
+    ui->cboxEndSym->setCurrentIndex(TechDraw::ArrowType::NONE);
 
     ui->dsbWeight->setUnit(Base::Unit::Length);
     ui->dsbWeight->setMinimum(0);
@@ -290,8 +297,14 @@ void TaskLeaderLine::setUiEdit()
     if (m_lineFeat != nullptr) {
         std::string baseName = m_lineFeat->LeaderParent.getValue()->getNameInDocument();
         ui->tbBaseView->setText(Base::Tools::fromStdString(baseName));
-        ui->cboxStartSym->setCurrentIndex(m_lineFeat->StartSymbol.getValue() + 1);
-        ui->cboxEndSym->setCurrentIndex(m_lineFeat->EndSymbol.getValue() + 1);
+
+        DrawGuiUtil::loadArrowBox(ui->cboxStartSym);
+        ui->cboxStartSym->setCurrentIndex(m_lineFeat->StartSymbol.getValue());
+        connect(ui->cboxStartSym, SIGNAL(currentIndexChanged(int)), this, SLOT(onStartSymbolChanged()));
+        DrawGuiUtil::loadArrowBox(ui->cboxEndSym);
+        ui->cboxEndSym->setCurrentIndex(m_lineFeat->EndSymbol.getValue());
+        connect(ui->cboxEndSym, SIGNAL(currentIndexChanged(int)), this, SLOT(onEndSymbolChanged()));
+
         ui->pbTracker->setText(QString::fromUtf8("Edit points"));
         if (m_haveMdi) {
             ui->pbTracker->setEnabled(true);
@@ -307,6 +320,49 @@ void TaskLeaderLine::setUiEdit()
         ui->dsbWeight->setValue(m_lineVP->LineWidth.getValue());
         ui->cboxStyle->setCurrentIndex(m_lineVP->LineStyle.getValue());
     }
+    connect(ui->cpLineColor, SIGNAL(changed()), this, SLOT(onColorChanged()));
+    ui->dsbWeight->setMinimum(0);
+    connect(ui->dsbWeight, SIGNAL(valueChanged(double)), this, SLOT(onLineWidthChanged()));
+    connect(ui->cboxStyle, SIGNAL(currentIndexChanged(int)), this, SLOT(onLineStyleChanged()));
+}
+
+void TaskLeaderLine::recomputeFeature()
+{
+    App::DocumentObject* objVP = m_lineVP->getObject();
+    assert(objVP);
+    objVP->getDocument()->recomputeFeature(objVP);
+}
+
+void TaskLeaderLine::onStartSymbolChanged()
+{
+    m_lineFeat->StartSymbol.setValue(ui->cboxStartSym->currentIndex());
+    recomputeFeature();
+}
+
+void TaskLeaderLine::onEndSymbolChanged()
+{
+    m_lineFeat->EndSymbol.setValue(ui->cboxEndSym->currentIndex());
+    recomputeFeature();
+}
+
+void TaskLeaderLine::onColorChanged()
+{
+    App::Color ac;
+    ac.setValue<QColor>(ui->cpLineColor->color());
+    m_lineVP->Color.setValue(ac);
+    recomputeFeature();
+}
+
+void TaskLeaderLine::onLineWidthChanged()
+{
+    m_lineVP->LineWidth.setValue(ui->dsbWeight->rawValue());
+    recomputeFeature();
+}
+
+void TaskLeaderLine::onLineStyleChanged()
+{
+    m_lineVP->LineStyle.setValue(ui->cboxStyle->currentIndex());
+    recomputeFeature();
 }
 
 
@@ -391,8 +447,8 @@ void TaskLeaderLine::updateLeaderFeature(void)
 
 void TaskLeaderLine::commonFeatureUpdate(void)
 {
-    int start = ui->cboxStartSym->currentIndex() - 1;
-    int end   = ui->cboxEndSym->currentIndex() - 1;
+    int start = ui->cboxStartSym->currentIndex();
+    int end   = ui->cboxEndSym->currentIndex();
     m_lineFeat->StartSymbol.setValue(start);
     m_lineFeat->EndSymbol.setValue(end);
 }
@@ -440,7 +496,6 @@ void TaskLeaderLine::onTrackerClicked(bool b)
         if (m_tracker != nullptr) {
             m_tracker->terminateDrawing();
         }
-
         m_pbTrackerState = TRACKERPICK;
         ui->pbTracker->setText(QString::fromUtf8("Pick Points"));
         ui->pbCancelEdit->setEnabled(false);
@@ -449,13 +504,12 @@ void TaskLeaderLine::onTrackerClicked(bool b)
         setEditCursor(Qt::ArrowCursor);
         return;
     } else  if ( (m_pbTrackerState == TRACKERSAVE) &&
-                 (!getCreateMode()) ) {
+                 (!getCreateMode()) ) {                //edit mode
         if (m_qgLine != nullptr) {
             m_qgLine->closeEdit();
         }
-
         m_pbTrackerState = TRACKERPICK;
-        ui->pbTracker->setText(QString::fromUtf8("Pick Points"));
+        ui->pbTracker->setText(QString::fromUtf8("Edit Points"));
         ui->pbCancelEdit->setEnabled(false);
         enableTaskButtons(true);
 
@@ -556,24 +610,12 @@ void TaskLeaderLine::startTracker(void)
 
 void TaskLeaderLine::onTrackerFinished(std::vector<QPointF> pts, QGIView* qgParent)
 {
+    //in this case, we already know who the parent is.  We don't need QGTracker to tell us. 
+    (void) qgParent;
 //    Base::Console().Message("TTL::onTrackerFinished() - parent: %X\n",qgParent);
     if (pts.empty()) {
         Base::Console().Error("TaskLeaderLine - no points available\n");
         return;
-    }
-
-    if (qgParent == nullptr) {
-        //do something;
-        m_qgParent = findParentQGIV();
-    } else {
-        QGIView* qgiv = dynamic_cast<QGIView*>(qgParent);
-        if (qgiv != nullptr) {
-            m_qgParent = qgiv;
-        } else {
-            Base::Console().Message("TTL::onTrackerFinished - can't find parent graphic!\n");
-            //blow up!?
-            throw Base::RuntimeError("TaskLeaderLine - can not find parent graphic");
-        }
     }
 
     if (m_qgParent != nullptr) {
@@ -717,18 +759,12 @@ void TaskLeaderLine::enableTaskButtons(bool b)
 
 int TaskLeaderLine::getPrefArrowStyle()
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter().
-                                         GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/TechDraw/Dimensions");
-    int style = hGrp->GetInt("ArrowStyle", 0);
-    return style;
+    return PreferencesGui::dimArrowStyle();
 }
 
 double TaskLeaderLine::prefWeight() const
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
-                                        .GetGroup("BaseApp")->GetGroup("Preferences")->
-                                        GetGroup("Mod/TechDraw/Decorations");
-    std::string lgName = hGrp->GetASCII("LineGroup","FC 0.70mm");
+    std::string lgName = Preferences::lineGroup();
     auto lg = TechDraw::LineGroup::lineGroupFactory(lgName);
     double weight = lg->getWeight("Thin");
     delete lg;                                   //Coverity CID 174670
@@ -737,13 +773,8 @@ double TaskLeaderLine::prefWeight() const
 
 App::Color TaskLeaderLine::prefLineColor(void)
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter().
-                                 GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/TechDraw/Markups");
-    App::Color result;
-    result.setPackedValue(hGrp->GetUnsigned("Color", 0x00000000));
-    return result;
+    return PreferencesGui::leaderColor();
 }
-
 
 //******************************************************************************
 

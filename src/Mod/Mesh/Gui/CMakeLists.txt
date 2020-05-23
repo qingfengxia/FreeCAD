@@ -2,6 +2,7 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
     ${Boost_INCLUDE_DIRS}
     ${COIN3D_INCLUDE_DIRS}
+    ${COIN3D_INCLUDE_DIRS}/Inventor/annex
     ${PYTHON_INCLUDE_DIRS}
     ${ZLIB_INCLUDE_DIR}
     ${XercesC_INCLUDE_DIRS}
@@ -33,6 +34,7 @@ set(Mesh_MOC_HDRS
     DlgRegularSolidImp.h
     DlgSettingsMeshView.h
     DlgSettingsImportExportImp.h
+    DlgDecimating.h
     DlgSmoothing.h
     MeshEditor.h
     PropertyEditorMesh.h
@@ -50,6 +52,7 @@ set(Dialogs_UIC_SRCS
     DlgRegularSolid.ui
     DlgSettingsMeshView.ui
     DlgSettingsImportExport.ui
+    DlgDecimating.ui
     DlgSmoothing.ui
     RemoveComponents.ui
     RemeshGmsh.ui
@@ -75,6 +78,9 @@ SET(Dialogs_SRCS
     DlgSettingsImportExport.ui
     DlgSettingsImportExportImp.cpp
     DlgSettingsImportExportImp.h
+    DlgDecimating.ui
+    DlgDecimating.cpp
+    DlgDecimating.h
     DlgSmoothing.ui
     DlgSmoothing.cpp
     DlgSmoothing.h

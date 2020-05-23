@@ -73,6 +73,7 @@
 #include <Mod/Part/App/PartFeature.h>
 #include <Mod/Part/App/TopoShape.h>
 
+#include "Preferences.h"
 #include "GeometryObject.h"
 #include "DrawUtil.h"
 
@@ -280,6 +281,62 @@ bool DrawUtil::fpCompare(const double& d1, const double& d2, double tolerance)
     if (std::fabs(d1 - d2) < tolerance) {
         result = true;
     }
+    return result;
+}
+
+//brute force intersection points of line(point, dir) with box(xRange, yRange)
+std::pair<Base::Vector3d, Base::Vector3d> DrawUtil::boxIntersect2d(Base::Vector3d point,
+                                                                   Base::Vector3d dirIn,
+                                                                   double xRange,
+                                                                   double yRange) 
+{
+    std::pair<Base::Vector3d, Base::Vector3d> result;
+    Base::Vector3d p1, p2;
+    Base::Vector3d dir = dirIn;
+    dir.Normalize();
+    // y = mx + b
+    // m = (y1 - y0) / (x1 - x0)
+    if (DrawUtil::fpCompare(dir.x, 0.0) ) {
+        p1 = Base::Vector3d(point.x, - yRange / 2.0, 0.0);  
+        p2 = Base::Vector3d(point.x, yRange / 2.0, 0.0);
+    } else {
+        double slope = dir.y / dir.x;
+        double left = -xRange / 2.0;
+        double right = xRange / 2.0;
+        double top = yRange / 2.0;
+        double bottom = -yRange / 2.0;
+        double yLeft   = point.y - slope * (point.x - left) ;
+        double yRight  = point.y - slope * (point.x - right);
+        double xTop    = point.x - ( (point.y - top) / slope );
+        double xBottom = point.x - ( (point.y - bottom) / slope );
+
+        if ( (bottom < yLeft) &&
+             (top > yLeft) )  {
+            p1 = Base::Vector3d(left, yLeft);
+        } else if (yLeft <= bottom) {
+            p1 = Base::Vector3d(xBottom, bottom);
+        } else if (yLeft >= top) {
+            p1 = Base::Vector3d(xTop, top);
+        }
+
+        if ( (bottom < yRight) &&
+             (top > yRight) )  {
+            p2 = Base::Vector3d(right, yRight);
+        } else if (yRight <= bottom) {
+            p2 = Base::Vector3d(xBottom, bottom);
+        } else if (yRight >= top) {
+            p2 = Base::Vector3d(xTop, top);
+        }
+    }
+    result.first = p1;
+    result.second = p2;
+    Base::Vector3d dirCheck = p2 - p1;
+    dirCheck.Normalize();
+    if (!dir.IsEqual(dirCheck, 0.00001)) {
+        result.first = p2;
+        result.second = p1;
+    }
+
     return result;
 }
 
@@ -499,9 +556,8 @@ double DrawUtil::sensibleScale(double working_scale)
 
 double DrawUtil::getDefaultLineWeight(std::string lineType)
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter().GetGroup("BaseApp")->
-                                                    GetGroup("Preferences")->GetGroup("Mod/TechDraw/Decorations");
-    std::string lgName = hGrp->GetASCII("LineGroup","FC 0.70mm");
+    std::string lgName = Preferences::lineGroup();
+ 
     auto lg = LineGroup::lineGroupFactory(lgName);
 
     double weight = lg->getWeight(lineType);
@@ -570,6 +626,13 @@ Base::Vector3d DrawUtil::invertY(Base::Vector3d v)
     return result;
 }
 
+QPointF DrawUtil::invertY(QPointF v)
+{
+    QPointF result(v.x(), -v.y());
+    return result;
+}
+
+
 //obs? was used in CSV prototype of Cosmetics
 std::vector<std::string> DrawUtil::split(std::string csvLine)
 {
@@ -606,7 +669,7 @@ App::Color DrawUtil::pyTupleToColor(PyObject* pColor)
 {
 //    Base::Console().Message("DU::pyTupleToColor()\n");
     double red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
-    App::Color c(red, blue, green, alpha);
+    App::Color c(red, green, blue, alpha);
     if (PyTuple_Check(pColor)) {
         int tSize = (int) PyTuple_Size(pColor);
         if (tSize > 2) {
@@ -621,7 +684,7 @@ App::Color DrawUtil::pyTupleToColor(PyObject* pColor)
             PyObject* pAlpha = PyTuple_GetItem(pColor,3);
             alpha = PyFloat_AsDouble(pAlpha);
         }
-        c = App::Color(red, blue, green, alpha);
+        c = App::Color(red, green, blue, alpha);
     }
     return c;
 }
@@ -656,7 +719,7 @@ bool  DrawUtil::isCrazy(TopoDS_Edge e)
 
     Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter().GetGroup("BaseApp")->
                                                     GetGroup("Preferences")->GetGroup("Mod/TechDraw/debug");
-    bool crazyOK = hGrp->GetBool("allowCrazyEdge", true);
+    bool crazyOK = hGrp->GetBool("allowCrazyEdge", false);
     if (crazyOK) {
         return false;
     }
@@ -1062,6 +1125,25 @@ void DrawUtil::findCircularArcRectangleIntersections(const Base::Vector2d &circl
     mergeBoundedPoint(circleCenter + Base::Vector2d::FromPolar(circleRadius, arcBaseAngle + arcRotation),
                       rectangle, intersections);
 }
+
+//copy whole text file from inSpec to outSpec
+//create empty outSpec file if inSpec
+void DrawUtil::copyFile(std::string inSpec, std::string outSpec)
+{
+//    Base::Console().Message("DU::copyFile(%s, %s)\n", inSpec.c_str(), outSpec.c_str());
+    if (inSpec.empty()) {
+        std::ofstream output(outSpec);
+        return;
+    }
+    Base::FileInfo fi(inSpec);
+    if (fi.isReadable()) {
+        bool rc = fi.copyTo(outSpec.c_str());
+        if (!rc) {
+            Base::Console().Message("DU::copyFile - failed - in: %s out:%s\n", inSpec.c_str(), outSpec.c_str());
+        }
+    }
+}
+
 
 //============================
 // various debugging routines.

@@ -255,11 +255,15 @@ Action * StdCmdFreezeViews::createAction(void)
 
     // add the action items
     saveView = pcAction->addAction(QObject::tr("Save views..."));
-    pcAction->addAction(QObject::tr("Load views..."));
+    saveView->setWhatsThis(QString::fromLatin1(sWhatsThis));
+    QAction* loadView = pcAction->addAction(QObject::tr("Load views..."));
+    loadView->setWhatsThis(QString::fromLatin1(sWhatsThis));
     pcAction->addAction(QString::fromLatin1(""))->setSeparator(true);
     freezeView = pcAction->addAction(QObject::tr("Freeze view"));
     freezeView->setShortcut(QString::fromLatin1(sAccel));
+    freezeView->setWhatsThis(QString::fromLatin1(sWhatsThis));
     clearView = pcAction->addAction(QObject::tr("Clear views"));
+    clearView->setWhatsThis(QString::fromLatin1(sWhatsThis));
     separator = pcAction->addAction(QString::fromLatin1(""));
     separator->setSeparator(true);
     offset = pcAction->actions().count();
@@ -342,12 +346,12 @@ void StdCmdFreezeViews::onSaveViews()
 
             // remove the first line because it's a comment like '#Inventor V2.1 ascii'
             QString viewPos;
-            if ( !data.isEmpty() ) {
+            if (!data.isEmpty()) {
                 QStringList lines = data.split(QString::fromLatin1("\n"));
-                if ( lines.size() > 1 ) {
+                if (lines.size() > 1) {
                     lines.pop_front();
-                    viewPos = lines.join(QString::fromLatin1(" "));
                 }
+                viewPos = lines.join(QString::fromLatin1(" "));
             }
 
             str << "    <Camera settings=\"" << viewPos.toLatin1().constData() << "\"/>" << endl;
@@ -575,8 +579,9 @@ StdCmdDrawStyle::StdCmdDrawStyle()
 {
     sGroup        = QT_TR_NOOP("Standard-View");
     sMenuText     = QT_TR_NOOP("Draw style");
-    sToolTipText  = QT_TR_NOOP("Draw style");
-    sStatusTip    = QT_TR_NOOP("Draw style");
+    sToolTipText  = QT_TR_NOOP("Change the draw style of the objects");
+    sStatusTip    = QT_TR_NOOP("Change the draw style of the objects");
+    sWhatsThis    = "Std_DrawStyle";
     sPixmap       = "DrawStyleAsIs";
     eType         = Alter3DView;
 
@@ -595,36 +600,43 @@ Gui::Action * StdCmdDrawStyle::createAction(void)
     a0->setChecked(true);
     a0->setObjectName(QString::fromLatin1("Std_DrawStyleAsIs"));
     a0->setShortcut(QKeySequence(QString::fromUtf8("V,1")));
+    a0->setWhatsThis(QString::fromLatin1(sWhatsThis));
     QAction* a1 = pcAction->addAction(QString());
     a1->setCheckable(true);
-    a1->setIcon(BitmapFactory().iconFromTheme("DrawStyleFlatLines"));
-    a1->setObjectName(QString::fromLatin1("Std_DrawStyleFlatLines"));
-    a1->setShortcut(QKeySequence(QString::fromUtf8("V,2")));
+    a1->setIcon(BitmapFactory().iconFromTheme("DrawStylePoints"));
+    a1->setObjectName(QString::fromLatin1("Std_DrawStylePoints"));
+    a1->setShortcut(QKeySequence(QString::fromUtf8("V,2")));    
+    a1->setWhatsThis(QString::fromLatin1(sWhatsThis));
     QAction* a2 = pcAction->addAction(QString());
     a2->setCheckable(true);
-    a2->setIcon(BitmapFactory().iconFromTheme("DrawStyleShaded"));
-    a2->setObjectName(QString::fromLatin1("Std_DrawStyleShaded"));
+    a2->setIcon(BitmapFactory().iconFromTheme("DrawStyleWireFrame"));
+    a2->setObjectName(QString::fromLatin1("Std_DrawStyleWireframe"));
     a2->setShortcut(QKeySequence(QString::fromUtf8("V,3")));
+    a2->setWhatsThis(QString::fromLatin1(sWhatsThis));
     QAction* a3 = pcAction->addAction(QString());
     a3->setCheckable(true);
-    a3->setIcon(BitmapFactory().iconFromTheme("DrawStyleWireFrame"));
-    a3->setObjectName(QString::fromLatin1("Std_DrawStyleWireframe"));
+    a3->setIcon(BitmapFactory().iconFromTheme("DrawStyleHiddenLine"));
+    a3->setObjectName(QString::fromLatin1("Std_DrawStyleHiddenLine"));
     a3->setShortcut(QKeySequence(QString::fromUtf8("V,4")));
+    a3->setWhatsThis(QString::fromLatin1(sWhatsThis));
     QAction* a4 = pcAction->addAction(QString());
     a4->setCheckable(true);
-    a4->setIcon(BitmapFactory().iconFromTheme("DrawStylePoints"));
-    a4->setObjectName(QString::fromLatin1("Std_DrawStylePoints"));
+    a4->setIcon(BitmapFactory().iconFromTheme("DrawStyleNoShading"));
+    a4->setObjectName(QString::fromLatin1("Std_DrawStyleNoShading"));
     a4->setShortcut(QKeySequence(QString::fromUtf8("V,5")));
+    a4->setWhatsThis(QString::fromLatin1(sWhatsThis));
     QAction* a5 = pcAction->addAction(QString());
     a5->setCheckable(true);
-    a5->setIcon(BitmapFactory().iconFromTheme("DrawStyleWireFrame"));
-    a5->setObjectName(QString::fromLatin1("Std_DrawStyleHiddenLine"));
+    a5->setIcon(BitmapFactory().iconFromTheme("DrawStyleShaded"));
+    a5->setObjectName(QString::fromLatin1("Std_DrawStyleShaded"));
     a5->setShortcut(QKeySequence(QString::fromUtf8("V,6")));
+    a5->setWhatsThis(QString::fromLatin1(sWhatsThis));
     QAction* a6 = pcAction->addAction(QString());
     a6->setCheckable(true);
-    a6->setIcon(BitmapFactory().iconFromTheme("DrawStyleWireFrame"));
-    a6->setObjectName(QString::fromLatin1("Std_DrawStyleNoShading"));
+    a6->setIcon(BitmapFactory().iconFromTheme("DrawStyleFlatLines"));
+    a6->setObjectName(QString::fromLatin1("Std_DrawStyleFlatLines"));
     a6->setShortcut(QKeySequence(QString::fromUtf8("V,7")));
+    a6->setWhatsThis(QString::fromLatin1(sWhatsThis));
 
 
     pcAction->setIcon(a0->icon());
@@ -649,34 +661,34 @@ void StdCmdDrawStyle::languageChange()
         "Std_DrawStyle", "Normal mode"));
 
     a[1]->setText(QCoreApplication::translate(
-        "Std_DrawStyle", "Flat lines"));
-    a[1]->setToolTip(QCoreApplication::translate(
-        "Std_DrawStyle", "Flat lines mode"));
-
-    a[2]->setText(QCoreApplication::translate(
-        "Std_DrawStyle", "Shaded"));
-    a[2]->setToolTip(QCoreApplication::translate(
-        "Std_DrawStyle", "Shaded mode"));
-
-    a[3]->setText(QCoreApplication::translate(
-        "Std_DrawStyle", "Wireframe"));
-    a[3]->setToolTip(QCoreApplication::translate(
-        "Std_DrawStyle", "Wireframe mode"));
-
-    a[4]->setText(QCoreApplication::translate(
         "Std_DrawStyle", "Points"));
-    a[4]->setToolTip(QCoreApplication::translate(
+    a[1]->setToolTip(QCoreApplication::translate(
         "Std_DrawStyle", "Points mode"));
 
-    a[5]->setText(QCoreApplication::translate(
+    a[2]->setText(QCoreApplication::translate(
+        "Std_DrawStyle", "Wireframe"));
+    a[2]->setToolTip(QCoreApplication::translate(
+        "Std_DrawStyle", "Wireframe mode"));
+
+    a[3]->setText(QCoreApplication::translate(
         "Std_DrawStyle", "Hidden line"));
-    a[5]->setToolTip(QCoreApplication::translate(
+    a[3]->setToolTip(QCoreApplication::translate(
         "Std_DrawStyle", "Hidden line mode"));
 
-    a[6]->setText(QCoreApplication::translate(
+    a[4]->setText(QCoreApplication::translate(
         "Std_DrawStyle", "No shading"));
-    a[6]->setToolTip(QCoreApplication::translate(
+    a[4]->setToolTip(QCoreApplication::translate(
         "Std_DrawStyle", "No shading mode"));
+
+    a[5]->setText(QCoreApplication::translate(
+        "Std_DrawStyle", "Shaded"));
+    a[5]->setToolTip(QCoreApplication::translate(
+        "Std_DrawStyle", "Shaded mode"));
+
+    a[6]->setText(QCoreApplication::translate(
+        "Std_DrawStyle", "Flat lines"));
+    a[6]->setToolTip(QCoreApplication::translate(
+        "Std_DrawStyle", "Flat lines mode"));
 }
 
 void StdCmdDrawStyle::updateIcon(const MDIView *view)
@@ -692,32 +704,32 @@ void StdCmdDrawStyle::updateIcon(const MDIView *view)
     if (!actionGroup)
         return;
 
-    if (mode == "Flat Lines")
+    if (mode == "Point")
     {
         actionGroup->setCheckedAction(1);
         return;
     }
-    if (mode == "Shaded")
+    if (mode == "Wireframe")
     {
         actionGroup->setCheckedAction(2);
         return;
     }
-    if (mode == "Wireframe")
+    if (mode == "Hidden Line")
     {
         actionGroup->setCheckedAction(3);
         return;
     }
-    if (mode == "Point")
+    if (mode == "No shading")
     {
         actionGroup->setCheckedAction(4);
         return;
     }
-    if (mode == "Hidden Line")
+    if (mode == "Shaded")
     {
         actionGroup->setCheckedAction(5);
         return;
-    }
-    if (mode == "No shading")
+    }    
+    if (mode == "Flat Lines")
     {
         actionGroup->setCheckedAction(6);
         return;
@@ -743,22 +755,22 @@ void StdCmdDrawStyle::activated(int iMsg)
                 switch (iMsg)
                 {
                 case 1:
-                    (oneChangedSignal) ? viewer->updateOverrideMode("Flat Lines") : viewer->setOverrideMode("Flat Lines");
-                    break;
-                case 2:
-                    (oneChangedSignal) ? viewer->updateOverrideMode("Shaded") : viewer->setOverrideMode("Shaded");
-                    break;
-                case 3:
-                    (oneChangedSignal) ? viewer->updateOverrideMode("Wireframe") : viewer->setOverrideMode("Wireframe");
-                    break;
-                case 4:
                     (oneChangedSignal) ? viewer->updateOverrideMode("Point") : viewer->setOverrideMode("Point");
                     break;
-                case 5:
+                case 2:
+                    (oneChangedSignal) ? viewer->updateOverrideMode("Wireframe") : viewer->setOverrideMode("Wireframe");
+                    break;
+                case 3:
                     (oneChangedSignal) ? viewer->updateOverrideMode("Hidden Line") : viewer->setOverrideMode("Hidden Line");
                     break;
-                case 6:
+                case 4:
                     (oneChangedSignal) ? viewer->updateOverrideMode("No Shading") : viewer->setOverrideMode("No Shading");
+                    break;
+                case 5:
+                    (oneChangedSignal) ? viewer->updateOverrideMode("Shaded") : viewer->setOverrideMode("Shaded");
+                    break;
+                case 6:
+                    (oneChangedSignal) ? viewer->updateOverrideMode("Flat Lines") : viewer->setOverrideMode("Flat Lines");
                     break;
                 default:
                     (oneChangedSignal) ? viewer->updateOverrideMode("As Is") : viewer->setOverrideMode("As Is");
@@ -1816,7 +1828,7 @@ void StdViewScreenShot::activated(int iMsg)
 
             QString comment = opt->comment();
             if (!comment.isEmpty()) {
-                // Replace newline escape sequence trough '\\n' string to build one big string,
+                // Replace newline escape sequence through '\\n' string to build one big string,
                 // otherwise Python would interpret it as an invalid command.
                 // Python does the decoding for us.
                 QStringList lines = comment.split(QLatin1String("\n"), QString::KeepEmptyParts );

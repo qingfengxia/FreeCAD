@@ -288,6 +288,12 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f)
     // global access 
     instance = this;
 
+    // support for grouped dragging of dockwidgets
+    // https://woboq.com/blog/qdockwidget-changes-in-56.html
+#if QT_VERSION >= 0x050600
+    setDockOptions(dockOptions() | QMainWindow::GroupedDragging);
+#endif
+
     // Create the layout containing the workspace and a tab bar
     d->mdiArea = new QMdiArea();
     // Movable tabs
@@ -346,6 +352,10 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f)
     connect(d->activityTimer, SIGNAL(timeout()),this, SLOT(_updateActions()));
     d->activityTimer->setSingleShot(false);
     d->activityTimer->start(150);
+
+    // update view-sensitive commands when clipboard has changed
+    QClipboard *clipbd = QApplication::clipboard();
+    connect(clipbd, SIGNAL(dataChanged()), this, SLOT(updateEditorActions()));
 
     // show main window timer
     d->visibleTimer = new QTimer(this);
@@ -700,6 +710,15 @@ void MainWindow::activatePreviousWindow ()
 
 void MainWindow::activateWorkbench(const QString& name)
 {
+    ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath("User parameter:BaseApp/Preferences/View");
+    bool saveWB = hGrp->GetBool("SaveWBbyTab", false);
+    QMdiSubWindow* subWin = d->mdiArea->activeSubWindow();
+    if (subWin /*!= nullptr*/ && saveWB) {
+        QString currWb = subWin->property("ownWB").toString();
+        if (currWb.isEmpty() || currWb != name) {
+            subWin->setProperty("ownWB", name);
+        }
+    }
     // emit this signal
     workbenchActivated(name);
     updateActions(true);
@@ -1020,6 +1039,18 @@ void MainWindow::onWindowActivated(QMdiSubWindow* w)
     if (!w) return;
     MDIView* view = dynamic_cast<MDIView*>(w->widget());
 
+    ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath("User parameter:BaseApp/Preferences/View");
+    bool saveWB = hGrp->GetBool("SaveWBbyTab", false);
+    if (saveWB) {
+        QString currWb = w->property("ownWB").toString();
+        if (! currWb.isEmpty()) {
+            this->activateWorkbench(currWb);
+        }
+        else {
+            w->setProperty("ownWB", QString::fromStdString(WorkbenchManager::instance()->active()->name()));
+        }
+    }
+    
     // Even if windowActivated() signal is emitted mdi doesn't need to be a top-level window.
     // This happens e.g. if two windows are top-level and one of them gets docked again.
     // QWorkspace emits the signal then even though the other window is in front.
@@ -1313,6 +1344,27 @@ void MainWindow::_updateActions()
         Application::Instance->commandManager().testActive();
     }
     d->actionUpdateDelay = 0;
+}
+
+void MainWindow::updateEditorActions()
+{
+    Command* cmd = nullptr;
+    CommandManager& mgr = Application::Instance->commandManager();
+
+    cmd = mgr.getCommandByName("Std_Cut");
+    if (cmd) cmd->testActive();
+
+    cmd = mgr.getCommandByName("Std_Copy");
+    if (cmd) cmd->testActive();
+
+    cmd = mgr.getCommandByName("Std_Paste");
+    if (cmd) cmd->testActive();
+
+    cmd = mgr.getCommandByName("Std_Undo");
+    if (cmd) cmd->testActive();
+
+    cmd = mgr.getCommandByName("Std_Redo");
+    if (cmd) cmd->testActive();
 }
 
 void MainWindow::switchToTopLevelMode()

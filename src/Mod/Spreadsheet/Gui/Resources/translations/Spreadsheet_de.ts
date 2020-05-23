@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0" language="de" sourcelanguage="en">
+<TS version="2.1" language="de" sourcelanguage="en">
   <context>
     <name>CmdCreateSpreadsheet</name>
     <message>
@@ -178,7 +178,7 @@
     </message>
     <message>
       <source>Split previously merged cells</source>
-      <translation>Vorher zusammengeführte Zellen trennen</translation>
+      <translation>Zuletzt zusammengeführte Zellen trennen</translation>
     </message>
   </context>
   <context>
@@ -223,7 +223,7 @@
     </message>
     <message>
       <source>Underline text in selected cells</source>
-      <translation>Unterstreiche den Text in den markierten Zellen</translation>
+      <translation>Unterstreiche Text in den ausgewählten Zellen</translation>
     </message>
   </context>
   <context>
@@ -331,28 +331,38 @@
       <translation>Exportiere Datei</translation>
     </message>
     <message>
-      <source>Cell contents</source>
-      <translation>Zellinhalt</translation>
-    </message>
-    <message>
       <source>Show spreadsheet</source>
       <translation>Zeige Kalkulationstabelle</translation>
     </message>
     <message>
       <source>Set cell(s) foreground color</source>
-      <translation>Stellt die Vordergrundfarbe der Zelle(n) ein</translation>
+      <translation>Vordergrundfarbe der Zelle(n) einstellen</translation>
     </message>
     <message>
       <source>Sets the Spreadsheet cell(s) foreground color</source>
-      <translation>Stellt die Vordergrundfarbe der Tabellen Zelle(n) ein</translation>
+      <translation>Vordergrundfarbe der Tabellen Zelle(n) einstellen</translation>
     </message>
     <message>
       <source>Set cell(s) background color</source>
-      <translation>Stellt die Hintergrundfarbe der Zelle(n) ein</translation>
+      <translation>Hintergrundfarbe der Zelle(n) einstellen</translation>
     </message>
     <message>
       <source>Sets the Spreadsheet cell(s) background color</source>
-      <translation>Stellt die Hintergrundfarbe der Tabellen Zelle(n) ein</translation>
+      <translation>Hintergrundfarbe der Tabellen Zelle(n) einstellen</translation>
+    </message>
+    <message>
+      <source>Spreadsheet</source>
+      <translation>Kalkulationstabelle</translation>
+    </message>
+    <message>
+      <source>Spreadsheet does not support range selection when pasting.
+Please select one cell only.</source>
+      <translation>Tabellenblatt unterstützt beim Einfügen keine Bereichsauswahl.
+Bitte nur eine Zelle auswählen.</translation>
+    </message>
+    <message>
+      <source>Copy &amp; Paste failed</source>
+      <translation>Kopieren &amp; Einfügen fehlgeschlagen</translation>
     </message>
   </context>
   <context>
@@ -439,6 +449,18 @@
     <message>
       <source>&amp;Contents</source>
       <translation>&amp;Inhalt</translation>
+    </message>
+    <message>
+      <source>&amp;Alias</source>
+      <translation type="unfinished">&amp;Alias</translation>
+    </message>
+    <message>
+      <source>Refer to cell by alias, for example
+Spreadsheet.my_alias_name instead of Spreadsheet.B1
+       </source>
+      <translation type="unfinished">Refer to cell by alias, for example
+Spreadsheet.my_alias_name instead of Spreadsheet.B1
+       </translation>
     </message>
   </context>
   <context>

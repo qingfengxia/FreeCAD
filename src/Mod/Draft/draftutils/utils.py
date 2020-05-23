@@ -1,13 +1,4 @@
 # -*- coding: utf-8 -*-
-"""This module provides utility functions for the Draft Workbench.
-
-This module should contain auxiliary functions which don't require
-the graphical user interface (GUI).
-"""
-## @package utils
-# \ingroup DRAFT
-# \brief This module provides utility functions for the Draft Workbench
-
 # ***************************************************************************
 # *   (c) 2009, 2010                                                        *
 # *   Yorik van Havre <yorik@uncreated.net>, Ken Cline <cline@frii.com>     *
@@ -32,52 +23,35 @@ the graphical user interface (GUI).
 # *   USA                                                                   *
 # *                                                                         *
 # ***************************************************************************
+"""Provides utility functions for the Draft Workbench.
+
+This module contains auxiliary functions which can be used
+in other modules of the workbench, and which don't require
+the graphical user interface (GUI).
+"""
+## @package utils
+# \ingroup DRAFT
+# \brief This module provides utility functions for the Draft Workbench
 
 import os
-import FreeCAD
 from PySide import QtCore
+
+import FreeCAD
 import Draft_rc
+from draftutils.messages import _msg, _log
+from draftutils.translate import _tr
+
 App = FreeCAD
 
 # The module is used to prevent complaints from code checkers (flake8)
 True if Draft_rc else False
-
-
-if App.GuiUp:
-    # The right translate function needs to be imported here
-    # from DraftGui import translate
-
-    # At the moment it is the same function as without GUI
-    def translate(context, text):
-        return text
-else:
-    def translate(context, text):
-        return text
-
-
-def _tr(text):
-    """Function to translate with the context set."""
-    return translate("Draft", text)
-
-
-def _msg(text, end="\n"):
-    App.Console.PrintMessage(text + end)
-
-
-def _wrn(text, end="\n"):
-    App.Console.PrintWarning(text + end)
-
-
-def _log(text, end="\n"):
-    App.Console.PrintLog(text + end)
-
 
 ARROW_TYPES = ["Dot", "Circle", "Arrow", "Tick", "Tick-2"]
 arrowtypes = ARROW_TYPES
 
 
 def string_encode_coin(ustr):
-    """Encode a unicode object to be used as a string in coin
+    """Encode a unicode object to be used as a string in coin.
 
     Parameters
     ----------
@@ -132,7 +106,7 @@ def type_check(args_and_types, name="?"):
         Defaults to `'?'`. The name of the check.
 
     Raises
-    -------
+    ------
     TypeError
         If the first element in the tuple is not an instance of the second
         element, it raises `Draft.name`.
@@ -183,7 +157,8 @@ def get_param_type(param):
                    "SvgLinesBlack", "dxfStdSize", "showSnapBar",
                    "hideSnapBar", "alwaysShowGrid", "renderPolylineWidth",
                    "showPlaneTracker", "UsePartPrimitives",
-                   "DiscretizeEllipses", "showUnit"):
+                   "DiscretizeEllipses", "showUnit",
+                   "Draft_array_fuse", "Draft_array_Link"):
         return "bool"
     elif param in ("color", "constructioncolor",
                    "snapcolor", "gridColor"):
@@ -196,7 +171,7 @@ getParamType = get_param_type
 
 
 def get_param(param, default=None):
-    """Return a paramater value from the current parameter database.
+    """Return a parameter value from the current parameter database.
 
     The parameter database is located in the tree
     ::
@@ -265,7 +240,7 @@ getParam = get_param
 
 
 def set_param(param, value):
-    """Set a Draft parameter with the given value
+    """Set a Draft parameter with the given value.
 
     The parameter database is located in the tree
     ::
@@ -318,7 +293,7 @@ setParam = set_param
 
 
 def precision():
-    """Return the precision value from the paramater database.
+    """Return the precision value from the parameter database.
 
     It is the number of decimal places that a float will have.
     Example
@@ -378,7 +353,7 @@ def epsilon():
 def get_real_name(name):
     """Strip the trailing numbers from a string to get only the letters.
 
-    Paramaters
+    Parameters
     ----------
     name : str
         A string that may have a number at the end, `Line001`.
@@ -402,7 +377,7 @@ getRealName = get_real_name
 def get_type(obj):
     """Return a string indicating the type of the given object.
 
-    Paramaters
+    Parameters
     ----------
     obj : App::DocumentObject
         Any type of scripted object created with Draft,
@@ -547,6 +522,34 @@ def is_clone(obj, objtype, recursive=False):
 
 
 isClone = is_clone
+
+
+def get_clone_base(obj, strict=False):
+    """get_clone_base(obj, [strict])
+    
+    Returns the object cloned by this object, if any, or this object if 
+    it is no clone. 
+
+    Parameters
+    ----------
+    obj : 
+        TODO: describe
+
+    strict : bool (default = False)
+        If strict is True, if this object is not a clone, 
+        this function returns False
+    """
+    if hasattr(obj,"CloneOf"):
+        if obj.CloneOf:
+            return get_clone_base(obj.CloneOf)
+    if get_type(obj) == "Clone":
+        return obj.Objects[0]
+    if strict:
+        return False
+    return obj
+
+
+getCloneBase = get_clone_base
 
 
 def get_group_names():
@@ -922,6 +925,100 @@ def svg_patterns():
 svgpatterns = svg_patterns
 
 
+def get_rgb(color, testbw=True):
+    """getRGB(color,[testbw])
+    
+    Return a rgb value #000000 from a freecad color
+    
+    Parameters
+    ----------
+    testwb : bool (default = True)
+        pure white will be converted into pure black
+    """
+    r = str(hex(int(color[0]*255)))[2:].zfill(2)
+    g = str(hex(int(color[1]*255)))[2:].zfill(2)
+    b = str(hex(int(color[2]*255)))[2:].zfill(2)
+    col = "#"+r+g+b
+    if testbw:
+        if col == "#ffffff":
+            #print(getParam('SvgLinesBlack'))
+            if getParam('SvgLinesBlack',True):
+                col = "#000000"
+    return col
+
+
+getrgb = get_rgb
+
+
+def get_DXF(obj,direction=None):
+    """getDXF(object,[direction]): returns a DXF entity from the given
+    object. If direction is given, the object is projected in 2D."""
+    plane = None
+    result = ""
+    if obj.isDerivedFrom("Drawing::View") or obj.isDerivedFrom("TechDraw::DrawView"):
+        if obj.Source.isDerivedFrom("App::DocumentObjectGroup"):
+            for o in obj.Source.Group:
+                result += getDXF(o,obj.Direction)
+        else:
+            result += getDXF(obj.Source,obj.Direction)
+        return result
+    if direction:
+        if isinstance(direction, App.Vector):
+            import WorkingPlane
+            if direction != App.Vector(0,0,0):
+                plane = WorkingPlane.Plane()
+                plane.alignToPointAndAxis(App.Vector(0,0,0), direction)
+
+    def getProj(vec):
+        if not plane: return vec
+        nx = DraftVecUtils.project(vec,plane.u)
+        ny = DraftVecUtils.project(vec,plane.v)
+        return App.Vector(nx.Length,ny.Length,0)
+
+    if getType(obj) in ["Dimension","LinearDimension"]:
+        p1 = getProj(obj.Start)
+        p2 = getProj(obj.End)
+        p3 = getProj(obj.Dimline)
+        result += "0\nDIMENSION\n8\n0\n62\n0\n3\nStandard\n70\n1\n"
+        result += "10\n"+str(p3.x)+"\n20\n"+str(p3.y)+"\n30\n"+str(p3.z)+"\n"
+        result += "13\n"+str(p1.x)+"\n23\n"+str(p1.y)+"\n33\n"+str(p1.z)+"\n"
+        result += "14\n"+str(p2.x)+"\n24\n"+str(p2.y)+"\n34\n"+str(p2.z)+"\n"
+
+    elif getType(obj) == "Annotation":
+        p = getProj(obj.Position)
+        count = 0
+        for t in obj.LabeLtext:
+            result += "0\nTEXT\n8\n0\n62\n0\n"
+            result += "10\n"+str(p.x)+"\n20\n"+str(p.y+count)+"\n30\n"+str(p.z)+"\n"
+            result += "40\n1\n"
+            result += "1\n"+str(t)+"\n"
+            result += "7\nSTANDARD\n"
+            count += 1
+
+    elif hasattr(obj,'Shape'):
+        # TODO do this the Draft way, for ex. using polylines and rectangles
+        import Drawing
+        import DraftVecUtils
+        if not direction:
+            direction = FreeCAD.Vector(0,0,-1)
+        if DraftVecUtils.isNull(direction):
+            direction = FreeCAD.Vector(0,0,-1)
+        try:
+            d = Drawing.projectToDXF(obj.Shape,direction)
+        except:
+            print("Draft.getDXF: Unable to project ",obj.Label," to ",direction)
+        else:
+            result += d
+
+    else:
+        print("Draft.getDXF: Unsupported object: ",obj.Label)
+
+    return result
+
+
+getDXF = get_DXF
+
+
 def get_movable_children(objectslist, recursive=True):
     """Return a list of objects with child objects that move with a host.
 
@@ -980,8 +1077,72 @@ def get_movable_children(objectslist, recursive=True):
 getMovableChildren = get_movable_children
 
 
+def filter_objects_for_modifiers(objects, isCopied=False):
+    filteredObjects = []
+    for obj in objects:
+        if hasattr(obj, "MoveBase") and obj.MoveBase and obj.Base:
+            parents = []
+            for parent in obj.Base.InList:
+                if parent.isDerivedFrom("Part::Feature"):
+                    parents.append(parent.Name)
+            if len(parents) > 1:
+                warningMessage = _tr("%s shares a base with %d other objects. Please check if you want to modify this.") % (obj.Name,len(parents) - 1)
+                App.Console.PrintError(warningMessage)
+                if App.GuiUp:
+                    FreeCADGui.getMainWindow().showMessage(warningMessage, 0)
+            filteredObjects.append(obj.Base)
+        elif hasattr(obj,"Placement") and obj.getEditorMode("Placement") == ["ReadOnly"] and not isCopied:
+            App.Console.PrintError(_tr("%s cannot be modified because its placement is readonly.") % obj.Name)
+            continue
+        else:
+            filteredObjects.append(obj)
+    return filteredObjects
+
+
+filterObjectsForModifiers = filter_objects_for_modifiers
+
+
+def is_closed_edge(edge_index, object):
+    return edge_index + 1 >= len(object.Points)
+
+
+isClosedEdge = is_closed_edge
+
+
+def convert_draft_texts(textslist=[]):
+    """
+    converts the given Draft texts (or all that is found
+    in the active document) to the new object
+    This function was already present at splitting time during v 0.19
+    """
+    if not isinstance(textslist,list):
+        textslist = [textslist]
+    if not textslist:
+        for o in FreeCAD.ActiveDocument.Objects:
+            if o.TypeId == "App::Annotation":
+                textslist.append(o)
+    todelete = []
+    for o in textslist:
+        l = o.Label
+        o.Label = l+".old"
+        obj = makeText(o.LabelText,point=o.Position)
+        obj.Label = l
+        todelete.append(o.Name)
+        for p in o.InList:
+            if p.isDerivedFrom("App::DocumentObjectGroup"):
+                if o in p.Group:
+                    g = p.Group
+                    g.append(obj)
+                    p.Group = g
+    for n in todelete:
+        FreeCAD.ActiveDocument.removeObject(n)
+
+
+convertDraftTexts = convert_draft_texts
+
+
 def utf8_decode(text):
-    """Decode the input string and return a unicode string.
+    r"""Decode the input string and return a unicode string.
 
     Python 2:
     ::
@@ -1017,14 +1178,14 @@ def utf8_decode(text):
 
         >>> "Aá".decode("utf-8")
         >>> b"Aá".decode("utf-8")
-        u'A\\xe1'
+        u'A\xe1'
 
         In Python 2 the unicode string is prefixed with `u`,
         and unicode characters are replaced by their two-digit hexadecimal
         representation, or four digit unicode escape.
 
         >>> "AáBẃCñ".decode("utf-8")
-        u'A\\xe1B\\u1e83C\\xf1'
+        u'A\xe1B\u1e83C\xf1'
 
         In Python 2 it will always return a `unicode` object.
 
@@ -1045,3 +1206,29 @@ def utf8_decode(text):
         return text.decode("utf-8")
     except AttributeError:
         return text
+
+
+def print_header(name, description, debug=True):
+    """Print a line to the console when something is called, and log it.
+
+    Parameters
+    ----------
+    name: str
+        The name of the function or class that is being called.
+        This `name` will be logged in the log file, so if there are problems
+        the log file can be investigated for clues.
+
+    description: str
+        Arbitrary text that will be printed to the console
+        when the function or class is called.
+
+    debug: bool, optional
+        It defaults to `True`.
+        If it is `False` the `description` will not be printed
+        to the console.
+        On the other hand the `name` will always be logged.
+    """
+    _log(name)
+    if debug:
+        _msg(16 * "-")
+        _msg(description)

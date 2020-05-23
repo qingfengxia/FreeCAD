@@ -51,18 +51,21 @@ class ArchWorkbench(FreeCADGui.Workbench):
         import DraftGui
         from draftguitools import gui_circulararray
         from draftguitools import gui_polararray
+        from draftguitools import gui_orthoarray
+        from draftguitools import gui_arrays
         import Arch_rc
         import Arch
 
         # Set up command lists
         self.archtools = ["Arch_Wall", "Arch_Structure", "Arch_Rebar",
-                          "Arch_BuildingPart",
+                          "Arch_CurtainWall","Arch_BuildingPart",
                           "Arch_Project", "Arch_Site", "Arch_Building",
                           "Arch_Floor", "Arch_Reference",
                           "Arch_Window", "Arch_Roof", "Arch_AxisTools",
                           "Arch_SectionPlane", "Arch_Space", "Arch_Stairs",
                           "Arch_PanelTools", "Arch_Equipment",
-                          "Arch_Frame", "Arch_Fence", "Arch_MaterialTools",
+                          "Arch_Frame", "Arch_Fence", "Arch_Truss",
+                          "Arch_MaterialTools",
                           "Arch_Schedule", "Arch_PipeTools",
                           "Arch_CutPlane", "Arch_CutLine",
                           "Arch_Add", "Arch_Remove", "Arch_Survey"]
@@ -178,6 +181,7 @@ FreeCADGui.addWorkbench(ArchWorkbench)
 import Arch_rc
 from PySide.QtCore import QT_TRANSLATE_NOOP
 FreeCADGui.addPreferencePage(":/ui/preferences-ifc.ui", QT_TRANSLATE_NOOP("Draft", "Import-Export"))
+FreeCADGui.addPreferencePage(":/ui/preferences-ifc-export.ui", QT_TRANSLATE_NOOP("Draft", "Import-Export"))
 FreeCADGui.addPreferencePage(":/ui/preferences-dae.ui", QT_TRANSLATE_NOOP("Draft", "Import-Export"))
 
 FreeCAD.__unit_test__ += ["TestArch"]

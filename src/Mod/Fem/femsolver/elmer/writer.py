@@ -1,6 +1,8 @@
 # ***************************************************************************
 # *   Copyright (c) 2017 Markus Hovorka <m.hovorka@live.de>                 *
 # *                                                                         *
+# *   This file is part of the FreeCAD CAx development system.              *
+# *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
 # *   as published by the Free Software Foundation; either version 2 of     *
@@ -31,14 +33,16 @@ import os.path
 import subprocess
 import tempfile
 
-from FreeCAD import Units
 from FreeCAD import Console
+from FreeCAD import Units
+
 import Fem
-import femtools.femutils as femutils
-import femtools.membertools as membertools
-import femmesh.gmshtools as gmshtools
-from .. import settings
 from . import sifio
+from .. import settings
+from femmesh import gmshtools
+from femtools import constants
+from femtools import femutils
+from femtools import membertools
 
 
 _STARTINFO_NAME = "ELMERSOLVER_STARTINFO"
@@ -60,10 +64,10 @@ UNITS = {
 
 
 CONSTS_DEF = {
-    "Gravity": "9.82 m/s^2",
-    "StefanBoltzmann": "5.67e-8 W/(m^2*K^4)",
-    "PermittivityOfVacuum": "8.8542e-12 s^4*A^2/(m*kg)",
-    "BoltzmannConstant": "1.3807e-23 J/K",
+    "Gravity": constants.gravity(),
+    "StefanBoltzmann": constants.stefan_boltzmann(),
+    "PermittivityOfVacuum": constants.permittivity_of_vakuum(),
+    "BoltzmannConstant": constants.boltzmann_constant(),
 }
 
 
@@ -199,7 +203,7 @@ class Writer(object):
     def _handleHeat(self):
         activeIn = []
         for equation in self.solver.Group:
-            if femutils.is_of_type(equation, "Fem::FemEquationElmerHeat"):
+            if femutils.is_of_type(equation, "Fem::EquationElmerHeat"):
                 if equation.References:
                     activeIn = equation.References[0][1]
                 else:
@@ -300,7 +304,7 @@ class Writer(object):
     def _handleElectrostatic(self):
         activeIn = []
         for equation in self.solver.Group:
-            if femutils.is_of_type(equation, "Fem::FemEquationElmerElectrostatic"):
+            if femutils.is_of_type(equation, "Fem::EquationElmerElectrostatic"):
                 if equation.References:
                     activeIn = equation.References[0][1]
                 else:
@@ -336,7 +340,9 @@ class Writer(object):
     def _handleElectrostaticConstants(self):
         self._constant(
             "Permittivity Of Vacuum",
-            getConstant("PermittivityOfVacuum", "T^4*I^2/(L*M)"))
+            getConstant("PermittivityOfVacuum", "T^4*I^2/(L^3*M)")
+        )
+        # https://forum.freecadweb.org/viewtopic.php?f=18&p=400959#p400959
 
     def _handleElectrostaticMaterial(self, bodies):
         for obj in self._getMember("App::MaterialObject"):
@@ -349,7 +355,8 @@ class Writer(object):
                 if "RelativePermittivity" in m:
                     self._material(
                         name, "Relative Permittivity",
-                        float(m["RelativePermittivity"]))
+                        float(m["RelativePermittivity"])
+                    )
 
     def _handleElectrostaticBndConditions(self):
         for obj in self._getMember("Fem::ConstraintElectrostaticPotential"):
@@ -372,7 +379,7 @@ class Writer(object):
     def _handleFluxsolver(self):
         activeIn = []
         for equation in self.solver.Group:
-            if femutils.is_of_type(equation, "Fem::FemEquationElmerFluxsolver"):
+            if femutils.is_of_type(equation, "Fem::EquationElmerFluxsolver"):
                 if equation.References:
                     activeIn = equation.References[0][1]
                 else:
@@ -393,7 +400,7 @@ class Writer(object):
     def _handleElasticity(self):
         activeIn = []
         for equation in self.solver.Group:
-            if femutils.is_of_type(equation, "Fem::FemEquationElmerElasticity"):
+            if femutils.is_of_type(equation, "Fem::EquationElmerElasticity"):
                 if equation.References:
                     activeIn = equation.References[0][1]
                 else:
@@ -523,20 +530,25 @@ class Writer(object):
             refs = (
                 obj.References[0][1]
                 if obj.References
-                else self._getAllBodies())
+                else self._getAllBodies()
+            )
             for name in (n for n in refs if n in bodies):
                 self._material(
                     name, "Density",
-                    self._getDensity(m))
+                    self._getDensity(m)
+                )
                 self._material(
                     name, "Youngs Modulus",
-                    self._getYoungsModulus(m))
+                    self._getYoungsModulus(m)
+                )
                 self._material(
                     name, "Poisson ratio",
-                    float(m["PoissonRatio"]))
+                    float(m["PoissonRatio"])
+                )
                 self._material(
                     name, "Heat expansion Coefficient",
-                    convert(m["ThermalExpansionCoefficient"], "O^-1"))
+                    convert(m["ThermalExpansionCoefficient"], "O^-1")
+                )
 
     def _getDensity(self, m):
         density = convert(m["Density"], "M/L^3")
@@ -553,7 +565,7 @@ class Writer(object):
     def _handleFlow(self):
         activeIn = []
         for equation in self.solver.Group:
-            if femutils.is_of_type(equation, "Fem::FemEquationElmerFlow"):
+            if femutils.is_of_type(equation, "Fem::EquationElmerFlow"):
                 if equation.References:
                     activeIn = equation.References[0][1]
                 else:
@@ -601,11 +613,13 @@ class Writer(object):
                 if "Density" in m:
                     self._material(
                         name, "Density",
-                        self._getDensity(m))
+                        self._getDensity(m)
+                    )
                 if "ThermalConductivity" in m:
                     self._material(
                         name, "Heat Conductivity",
-                        convert(m["ThermalConductivity"], "M*L/(T^3*O)"))
+                        convert(m["ThermalConductivity"], "M*L/(T^3*O)")
+                    )
                 if "KinematicViscosity" in m:
                     density = self._getDensity(m)
                     kViscosity = convert(m["KinematicViscosity"], "L^2/T")
@@ -622,7 +636,8 @@ class Writer(object):
                 if "SpecificHeatRatio" in m:
                     self._material(
                         name, "Specific Heat Ratio",
-                        float(m["SpecificHeatRatio"]))
+                        float(m["SpecificHeatRatio"])
+                    )
                 if "CompressibilityModel" in m:
                     self._material(
                         name, "Compressibility Model",

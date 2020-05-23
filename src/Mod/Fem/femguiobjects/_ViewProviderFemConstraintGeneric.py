@@ -1,6 +1,7 @@
 # ***************************************************************************
-# *                                                                         *
 # *   Copyright (c) 2018 qingfeng Xia <qingfeng.xia@gmail.coom>             *
+# *                                                                         *
+# *   This file is part of the FreeCAD CAx development system.              *
 # *                                                                         *
 # *   This program is free software; you can redistribute it and/or modify  *
 # *   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -24,62 +25,47 @@ __title__ = "FreeCAD FEM generic constraint ViewProvider"
 __author__ = "JBernd Hahnebach, Qingfeng Xia"
 __url__ = "http://www.freecadweb.org"
 
-## @package ViewProviderFemBodySource
+## @package ViewProviderFemConstraintGeneric
 #  \ingroup FEM
 #  \brief FreeCAD FEM view provider for constraint initial flow velocity object
 
 import FreeCAD
-# from FreeCAD import Units
 import FreeCADGui
-from . import ViewProviderFemConstraint
 
-# for the panel
+
+from ._TaskPanelConstraintGeneric import ConstraintInputWidget
 from . import FemSelectionWidgets
-from .ConstraintInputWidget import ConstraintInputWidget
+from . import ViewProviderFemConstraint
 
 
 class _ViewProvider(ViewProviderFemConstraint.ViewProxy):
 
-    def __init__(self, vobj):
-        vobj.Proxy = self
-        self.obj = vobj.Object  # needed in getIcon()
-
     def getIcon(self):
         # todo: dynamically generate icon by overlaying physical field symbol
-        if "Category" in self.obj.PropertiesList:
-            if self.obj.Category == "Source":
-                return ":/icons/fem-add-body-source"
-            elif self.obj.Category == "InitialValue":
-                return ":/icons/fem-add-initial-value"
+        if "Category" in self.Object.PropertiesList:
+            if self.Object.Category == "Source":
+                return ":/icons/fem-add-body-source.svg"
+            elif self.Object.Category == "InitialValue":
+                return ":/icons/fem-add-initial-value.svg"
             else:
-                return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint
+                return ":/icons/fem-add-initial-value.svg"  # todo: fem-generic-constraint
         else:
             FreeCAD.Console.Error("Document object does not have Category property")
             return ":/icons/fem-add-initial-value"  # todo: fem-generic-constraint
 
     def setEdit(self, vobj, mode=0):
-        # hide all meshes
-        for o in FreeCAD.ActiveDocument.Objects:
-            if o.isDerivedFrom("Fem::FemMeshObject"):
-                o.ViewObject.hide()
-        # show task panel
-        task = _TaskPanel(vobj.Object)
-        FreeCADGui.Control.showDialog(task)
-        return True
-
-    def unsetEdit(self, vobj, mode=0):
-        FreeCADGui.Control.closeDialog()
-        return True
-
-    def __getstate__(self):
-        return None
-
-    def __setstate__(self,state):
-        return None
+        ViewProviderFemConstraint.ViewProxy.setEdit(
+            self,
+            vobj,
+            mode,
+            _TaskPanel
+        )
 
 
 class _TaskPanel:
-    """The editmode TaskPanel for generic constraint objects (FemBodySource and FemInitialValue)"""
+    """
+    The editmode TaskPanel for generic constraint objects (FemBodySource and FemInitialValue)
+    """
 
     def __init__(self, obj):
         self.obj = obj
