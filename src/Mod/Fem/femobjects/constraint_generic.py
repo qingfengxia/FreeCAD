@@ -81,3 +81,11 @@ class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
         obj.ShapeType = "Solid"  # default shape type
         obj.References = []
         obj.Settings = {"Velocity": {}}
+
+    def __getstate__(self):
+        # Called during document saving
+        return self.Type
+
+    def __setstate__(self, state):
+        if state:
+            self.Type = state

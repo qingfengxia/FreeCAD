@@ -1549,7 +1549,7 @@ def create_all_fem_objects_doc(
     analysis = ObjectsFem.makeAnalysis(doc)
 
     analysis.addObject(ObjectsFem.makeConstraintAcceleration(doc))
-    analysis.addObject(ObjectsFem.makeInitialPressure(doc))
+    analysis.addObject(ObjectsFem.makeConstraintInitialPressure(doc))
 
     analysis.addObject(ObjectsFem.makeConstraintBearing(doc))
     analysis.addObject(ObjectsFem.makeConstraintBodyHeatSource(doc))

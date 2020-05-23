@@ -36,10 +36,11 @@ __url__ = "http://www.freecadweb.org"
 
 # this constraint could replace:
 #     constraint body heat source
+#     constraint self weight (gravity is kind of BodyAcceleration)
 #     constraint initial temperature
 #     constraint initial flow velocity
 # ATM the new ones are not implemented in any writer
-# this has to be done before any other constraint could be declared depretiated
+# this has to be done before any other constraint could be declared deprecated
 # Furthermore some converter needs to be implemented
 
 
