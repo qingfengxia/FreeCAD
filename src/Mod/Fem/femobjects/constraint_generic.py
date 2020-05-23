@@ -35,15 +35,13 @@ from . import base_fempythonobject
 
 class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
     """
-    The generic object for initial values and body source FemConstraint 
+    The generic object for initial values and body source FemConstraint
     """
 
     Type = "Fem::ConstraintGeneric"
 
     def __init__(self, obj):
         super(ConstraintGeneric, self).__init__(obj)
-
-        # self.Object = obj
 
         obj.addProperty(
             "App::PropertyEnumeration",
@@ -66,7 +64,7 @@ class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
             "App::PropertyStringList",
             "ShapeTypes",
             "GenericConstraint",
-            "List of appliable shape types"
+            "List of applicable shape types"
         )
         obj.addProperty(
             "App::PropertyPythonObject",
@@ -81,11 +79,3 @@ class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
         obj.ShapeType = "Solid"  # default shape type
         obj.References = []
         obj.Settings = {"Velocity": {}}
-
-    def __getstate__(self):
-        # Called during document saving
-        return self.Type
-
-    def __setstate__(self, state):
-        if state:
-            self.Type = state
