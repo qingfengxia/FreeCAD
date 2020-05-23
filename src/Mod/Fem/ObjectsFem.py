@@ -121,9 +121,10 @@ def makeConstraintBodyHeatSource(
     from femobjects import constraint_bodyheatsource
     constraint_bodyheatsource.ConstraintBodyHeatSource(obj)
     if FreeCAD.GuiUp:
-        from femviewprovider import view_constraint_bodyheatsource
-        view_constraint_bodyheatsource.VPConstraintBodyHeatSource(obj.ViewObject)
+        from femviewprovider import view_constraint_bodyheatsource as viewprov
+        viewprov.VPConstraintBodyHeatSource(obj.ViewObject)
     return obj
+
 
 def makeConstraintContact(
     doc,
@@ -348,11 +349,11 @@ def makeElementFluid1D(
     """makeElementFluid1D(document, [name]):
     creates an 1D fluid element object to define 1D flow"""
     obj = doc.addObject("Fem::FeaturePython", name)
-    from femobjects import _FemElementFluid1D
-    _FemElementFluid1D._FemElementFluid1D(obj)
+    from femobjects import element_fluid1D
+    element_fluid1D.ElementFluid1D(obj)
     if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemElementFluid1D
-        _ViewProviderFemElementFluid1D._ViewProviderFemElementFluid1D(obj.ViewObject)
+        from femviewprovider import view_element_fluid1D
+        view_element_fluid1D.VPElementFluid1D(obj.ViewObject)
     return obj
 
 
@@ -366,9 +367,9 @@ def makeElementGeometry1D(
     """makeElementGeometry1D(document, [width], [height], [name]):
     creates an 1D geometry element object to define a cross section"""
     obj = doc.addObject("Fem::FeaturePython", name)
-    from femobjects import _FemElementGeometry1D
-    _FemElementGeometry1D._FemElementGeometry1D(obj)
-    sec_types = _FemElementGeometry1D._FemElementGeometry1D.known_beam_types
+    from femobjects import element_geometry1D
+    element_geometry1D.ElementGeometry1D(obj)
+    sec_types = element_geometry1D.ElementGeometry1D.known_beam_types
     if sectiontype not in sec_types:
         FreeCAD.Console.PrintError("Section type is not known. Set to " + sec_types[0] + " \n")
         obj.SectionType = sec_types[0]
@@ -531,8 +532,8 @@ def makeMeshGroup(
     """makeMeshGroup(document, base_mesh, [use_label], [name]):
     creates a FEM mesh region object to define properties for a region of a FEM mesh"""
     obj = doc.addObject("Fem::FeaturePython", name)
-    from femobjects import _FemMeshGroup
-    _FemMeshGroup._FemMeshGroup(obj)
+    from femobjects import mesh_group
+    mesh_group.MeshGroup(obj)
     obj.UseLabel = use_label
     # obj.BaseMesh = base_mesh
     # App::PropertyLinkList does not support append
@@ -541,8 +542,8 @@ def makeMeshGroup(
     tmplist.append(obj)
     base_mesh.MeshGroupList = tmplist
     if FreeCAD.GuiUp:
-        from femguiobjects import _ViewProviderFemMeshGroup
-        _ViewProviderFemMeshGroup._ViewProviderFemMeshGroup(obj.ViewObject)
+        from femviewprovider import view_mesh_group
+        view_mesh_group.VPMeshGroup(obj.ViewObject)
     return obj
 
 
