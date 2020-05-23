@@ -163,6 +163,10 @@ class TestObjectType(unittest.TestCase):
             type_of_obj(ObjectsFem.makeConstraintBearing(doc))
         )
         self.assertEqual(
+            "Fem::ConstraintGeneric",
+            type_of_obj(ObjectsFem.makeConstraintAcceleration(doc))
+        )
+        self.assertEqual(
             "Fem::ConstraintBodyHeatSource",
             type_of_obj(ObjectsFem.makeConstraintBodyHeatSource(doc))
         )
@@ -201,6 +205,10 @@ class TestObjectType(unittest.TestCase):
         self.assertEqual(
             "Fem::ConstraintHeatflux",
             type_of_obj(ObjectsFem.makeConstraintHeatflux(doc))
+        )
+        self.assertEqual(
+            "Fem::ConstraintGeneric",
+            type_of_obj(ObjectsFem.makeConstraintInitialPressure(doc))
         )
         self.assertEqual(
             "Fem::ConstraintInitialFlowVelocity",
@@ -356,6 +364,10 @@ class TestObjectType(unittest.TestCase):
             "Fem::FemAnalysis"
         ))
         self.assertTrue(is_of_type(
+            ObjectsFem.makeConstraintAcceleration(doc),
+            "Fem::ConstraintGeneric"
+        ))
+        self.assertTrue(is_of_type(
             ObjectsFem.makeConstraintBearing(doc),
             "Fem::ConstraintBearing"
         ))
@@ -402,6 +414,10 @@ class TestObjectType(unittest.TestCase):
         self.assertTrue(is_of_type(
             ObjectsFem.makeConstraintInitialFlowVelocity(doc),
             "Fem::ConstraintInitialFlowVelocity"
+        ))
+        self.assertTrue(is_of_type(
+            ObjectsFem.makeConstraintInitialPressure(doc),
+            "Fem::ConstraintGeneric"
         ))
         self.assertTrue(is_of_type(
             ObjectsFem.makeConstraintInitialTemperature(doc),
@@ -561,6 +577,21 @@ class TestObjectType(unittest.TestCase):
         self.assertTrue(is_derived_from(
             analysis,
             "Fem::FemAnalysis"
+        ))
+
+        # ConstraintAcceleration
+        constraint_acceleration = ObjectsFem.makeConstraintAcceleration(doc)
+        self.assertTrue(is_derived_from(
+            constraint_acceleration,
+            "App::DocumentObject"
+        ))
+        self.assertTrue(is_derived_from(
+            constraint_acceleration,
+            "Fem::ConstraintPython"
+        ))
+        self.assertTrue(is_derived_from(
+            constraint_acceleration,
+            "Fem::ConstraintGeneric"
         ))
 
         # ConstraintBearing
@@ -741,6 +772,21 @@ class TestObjectType(unittest.TestCase):
         self.assertTrue(is_derived_from(
             constraint_initial_flow_velocity,
             "Fem::ConstraintInitialFlowVelocity"
+        ))
+
+        # InitialPressure
+        initial_pressure = ObjectsFem.makeConstraintInitialPressure(doc)
+        self.assertTrue(is_derived_from(
+            initial_pressure,
+            "App::DocumentObject"
+        ))
+        self.assertTrue(is_derived_from(
+            initial_pressure,
+            "Fem::ConstraintPython"
+        ))
+        self.assertTrue(is_derived_from(
+            initial_pressure,
+            "Fem::ConstraintGeneric"
         ))
 
         # ConstraintInitialTemperature
@@ -1256,6 +1302,11 @@ class TestObjectType(unittest.TestCase):
             ).isDerivedFrom("Fem::FemAnalysis")
         )
         self.assertTrue(
+            ObjectsFem.makeConstraintAcceleration(
+                doc
+            ).isDerivedFrom("Fem::ConstraintPython")
+        )
+        self.assertTrue(
             ObjectsFem.makeConstraintBearing(
                 doc
             ).isDerivedFrom("Fem::ConstraintBearing")
@@ -1309,6 +1360,11 @@ class TestObjectType(unittest.TestCase):
         )
         self.assertTrue(
             ObjectsFem.makeConstraintInitialFlowVelocity(
+                doc
+            ).isDerivedFrom("Fem::ConstraintPython")
+        )
+        self.assertTrue(
+            ObjectsFem.makeConstraintInitialPressure(
                 doc
             ).isDerivedFrom("Fem::ConstraintPython")
         )
@@ -1491,6 +1547,9 @@ def create_all_fem_objects_doc(
     doc
 ):
     analysis = ObjectsFem.makeAnalysis(doc)
+
+    analysis.addObject(ObjectsFem.makeConstraintAcceleration(doc))
+    analysis.addObject(ObjectsFem.makeConstraintInitialPressure(doc))
 
     analysis.addObject(ObjectsFem.makeConstraintBearing(doc))
     analysis.addObject(ObjectsFem.makeConstraintBodyHeatSource(doc))

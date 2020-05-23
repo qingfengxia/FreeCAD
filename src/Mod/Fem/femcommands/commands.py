@@ -133,6 +133,17 @@ class _ClippingPlaneRemoveAll(CommandManager):
         FreeCADGui.doCommand(line1 + line2 + line3)
 
 
+class _ConstraintAcceleration(CommandManager):
+    "The FEM_ConstraintAcceleration command definition"
+    def __init__(self):
+        super(_ConstraintAcceleration, self).__init__()
+        self.pixmap = "fem-add-body-source"
+        self.menuetext = "Constraint acceleration"
+        self.tooltip = "Creates a FEM constraint acceleration"
+        self.is_active = "with_analysis"
+        self.do_activated = "add_obj_on_gui_set_edit"
+
+
 class _ConstraintBodyHeatSource(CommandManager):
     "The FEM_ConstraintBodyHeatSource command definition"
 
@@ -174,6 +185,17 @@ class _ConstraintInitialFlowVelocity(CommandManager):
         super(_ConstraintInitialFlowVelocity, self).__init__()
         self.menuetext = "Constraint initial flow velocity"
         self.tooltip = "Creates a FEM constraint initial flow velocity"
+        self.is_active = "with_analysis"
+        self.do_activated = "add_obj_on_gui_set_edit"
+
+
+class _ConstraintInitialPressure(CommandManager):
+    "The FEM_ConstraintInitialPressure command definition"
+    def __init__(self):
+        super(_ConstraintInitialPressure, self).__init__()
+        self.pixmap = "fem-add-initial-value"
+        self.menuetext = "Constraint initial pressure"
+        self.tooltip = "Creates a FEM constraint initial pressure"
         self.is_active = "with_analysis"
         self.do_activated = "add_obj_on_gui_set_edit"
 
@@ -766,6 +788,10 @@ FreeCADGui.addCommand(
     _ClippingPlaneRemoveAll()
 )
 FreeCADGui.addCommand(
+    "FEM_ConstraintAcceleration",
+    _ConstraintAcceleration()
+)
+FreeCADGui.addCommand(
     "FEM_ConstraintBodyHeatSource",
     _ConstraintBodyHeatSource()
 )
@@ -780,6 +806,10 @@ FreeCADGui.addCommand(
 FreeCADGui.addCommand(
     "FEM_ConstraintInitialFlowVelocity",
     _ConstraintInitialFlowVelocity()
+)
+FreeCADGui.addCommand(
+    "FEM_ConstraintInitialPressure",
+    _ConstraintInitialPressure()
 )
 FreeCADGui.addCommand(
     "FEM_ConstraintSelfWeight",
