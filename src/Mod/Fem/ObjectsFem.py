@@ -64,7 +64,7 @@ def _makeConstraintBodySource(
 def _makeConstraintInitialValue(
     doc,
     initialValue,
-    name="IntialValue"
+    name="InitialValue"
 ):
     """makeConstraintInitialValue(document, initialvalue dict, [name]):
     creates an initial value object to define such as initial temperature"""

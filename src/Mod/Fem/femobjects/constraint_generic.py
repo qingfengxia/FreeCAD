@@ -35,7 +35,39 @@ from . import base_fempythonobject
 
 class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
     """
-    The generic object for initial values and body source FemConstraint
+    The generic object for initial values and source constraint
+
+    Currently: "Acceleration", a more generic one than SelfWeight,
+    and "InitialPressure", are implemented using this generic constraint class. 
+    `Acceleration` belongs to "Source" category, while InitialPressure is of 
+    "InitialValue" category. A third category "Constraint" means constraint/
+    boundary condition applied to geometry elements (point, line, face, body).
+    If a simple constraint type, e.g. applying a fixed temperature value on some
+    face boundary, then this generic constraint type can be used.
+
+    Two types of value input are supported:
+     1. constant scalar/vector means homogenous value in the selected geometry.
+     2. textual expression, e.g. "1x+3y-2t", means values depends on time(t) 
+        and coordinate (x, y, z). The solver input writer should parse and 
+        this expression to fit specific solver input expression format.
+
+    This generic constraint type is designed to reduce code duplication.
+    To add a new constraint type based on this generic constraint:
+
+    1. define the data structure,  e.g. `_DefaultConstraintAcceleration`
+        in the file "femobjects.ConstraintGenericDefaults" 
+    2. add `makeXXXConstraint()` function in `FemObject.py`, 
+        following existing examples in "FemObject.py"
+    3. add a new FemCommand class in "femcommands.py"
+        to create the new constraint type, including icon.
+        If a new icon file is added, remember to update "Gui/Resources/Fem.qrc"
+    4. enable the new constraint type in "InitGui.py" or/and "Gui/Workbench.cpp"
+    5. add new files into specific groups of Fem module's CMakeLists.txt
+    
+    All done, no TaskPanel nor ViewProvider is needed. The default taskpanel has 
+    generic Boundary/Geometry selection widget and a generic value input widget
+    for constant scalar/vector and expression. In a nonlinear simulation, a good
+    guess of initial value can significantly reduce the computation time.
     """
 
     Type = "Fem::ConstraintGeneric"
@@ -56,7 +88,7 @@ class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
         )
         obj.addProperty(
             "App::PropertyEnumeration",
-            "ShapeType",  # code review: rename to PreferedShapeType or DefaultShapeType
+            "ShapeType",  # consider: rename to PreferedShapeType or DefaultShapeType
             "GenericConstraint",
             "the default geometry shape type for this constraint"
         )
