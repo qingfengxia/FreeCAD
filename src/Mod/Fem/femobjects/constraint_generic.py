@@ -45,17 +45,32 @@ class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
     If a simple constraint type, e.g. applying a fixed temperature value on some
     face boundary, then this generic constraint type can be used.
 
-    Two types of value input are supported:
-     1. constant scalar/vector means homogenous value in the selected geometry.
-     2. textual expression, e.g. "1x+3y-2t", means values depends on time(t) 
-        and coordinate (x, y, z). The solver input writer should parse and 
-        this expression to fit specific solver input expression format.
-
     This generic constraint type is designed to reduce code duplication.
     To add a new constraint type based on this generic constraint:
 
-    1. define the data structure,  e.g. `_DefaultConstraintAcceleration`
-        in the file "femobjects.ConstraintGenericDefaults" 
+    1. define the data structure, in "femobjects/ConstraintGenericDefaults.py"
+        This a python dictionary object, the default values are used
+        to initialize the TaskPanel UI; once accepted, user input values are
+        updated to the `Setting` property (python dictionary) of ConstraintGeneric
+        ```python
+            _DefaultConstraintAcceleration = {
+            "Name": "Acceleration",
+            "Symbol": u"g",
+            "ValueType": "Quantity",
+            "NumberOfComponents": 3,
+            "Unit": "m/s^2",
+            "Value": [0, 0, -9.8]
+        }
+        ```
+        Two types of input `ValueType` are supported: Quantity, Expression
+        + constant scalar/vector quantity means homogenous distrbution.
+        + textual expression, e.g. "1x+3y-2t", means values depends on time(t) 
+            and coordinate (x, y, z). The solver input writer should parse and 
+            this expression to fit specific solver input expression format.
+        
+        Unit and Value are essential to create a Quantity, while Symbol are Name
+        can be used to generate per quantity type icon and DocumentObject names.
+
     2. add `makeXXXConstraint()` function in `FemObject.py`, 
         following existing examples in "FemObject.py"
     3. add a new FemCommand class in "femcommands.py"
@@ -68,6 +83,18 @@ class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
     generic Boundary/Geometry selection widget and a generic value input widget
     for constant scalar/vector and expression. In a nonlinear simulation, a good
     guess of initial value can significantly reduce the computation time.
+
+    To retrieve info from this constraint type in a FEM model writer:
+    1. use ConstraintGeneric's properties: Category, Settings, Reference
+    2. use the `References` a list of geometry sublink as other FEM constraints
+    3. value can be retrieved from Settings["Value"], which is a list of components.
+        The component can be number or string depends on Settings["ValueType"];
+        Settings["NumberOfComponents"] hints value dim: scalar, vector and tensor;
+        Settings["Unit"] is needed as an essential part of physical quantity.
+        
+    Note: Quantity input UI `Gui.InputField` has not been used in the task panel
+          since the contraint value input widget is created according to "Settings", 
+          instead of *.ui file.
     """
 
     Type = "Fem::ConstraintGeneric"
@@ -78,36 +105,36 @@ class ConstraintGeneric(base_fempythonobject.BaseFemPythonObject):
         obj.addProperty(
             "App::PropertyEnumeration",
             "Category",
-            "GenericConstraint",
-            "to distinguish constraint or initial value or source"
+            "ConstraintGeneric",
+            "to distinguish InitialValue, Constraint or Source"
         )
         obj.addProperty(
             "App::PropertyLinkSubList",
-            "References", "GenericConstraint",
-            "List of geometry references/links"
+            "References", "ConstraintGeneric",
+            "List of geometry references/links this contraint will apply to"
         )
         obj.addProperty(
             "App::PropertyEnumeration",
             "ShapeType",  # consider: rename to PreferedShapeType or DefaultShapeType
-            "GenericConstraint",
+            "ConstraintGeneric",
             "the default geometry shape type for this constraint"
         )
         obj.addProperty(
             "App::PropertyStringList",
             "ShapeTypes",
-            "GenericConstraint",
+            "ConstraintGeneric",
             "List of applicable shape types"
         )
         obj.addProperty(
             "App::PropertyPythonObject",
             "Settings",
-            "GenericConstraint",
+            "ConstraintGeneric",
             "A dictionary holds settings for constraint, initial value or source"
         )
         obj.Category = ["Constraint", "InitialValue", "Source"]
         obj.Category = "Constraint"
-        obj.ShapeTypes = ["Solid", "Face", "Edge", "Vertex"]  # == OCCT ShapeType names
-        obj.ShapeType = ["Solid", "Face", "Edge", "Vertex"]  # == OCCT ShapeType names
+        obj.ShapeTypes = ["Solid", "Face", "Edge", "Vertex"]
+        obj.ShapeType = ["Solid", "Face", "Edge", "Vertex"]
         obj.ShapeType = "Solid"  # default shape type
         obj.References = []
-        obj.Settings = {"Velocity": {}}
+        obj.Settings = {} #  user type default values defined in ConstraintGenericDefaults.py

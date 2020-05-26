@@ -31,37 +31,30 @@ __url__ = "http://www.freecadweb.org"
 #  \brief FreeCAD FEM generic constraint object defaults
 
 
-# more information
+# This documentation section is only for FEM developers
+# see more information on this generic constraint design:
 # https://forum.freecadweb.org/viewtopic.php?f=18&t=33124
 
-# this constraint could replace:
+# The tutorial on creating a new user-defined constraint type,
+# based on ConstraintGeneric, can be found in documentation
+# of ConstraintGeneric class in constraint_generic.py file.
+
+# This constraint could replace:
 #     constraint body heat source
-#     constraint self weight (gravity is kind of BodyAcceleration)
+#     constraint self weight (gravity is kind of Acceleration)
 #     constraint initial temperature
 #     constraint initial flow velocity
-# ATM the new ones are not implemented in any writer
-# this has to be done before any other constraint could be declared deprecated
+# ATM the new ones are not implemented in any writer of FEM, 
+# but will be demonstrated in Cfd module of Qingfeng Xia,
+# This has to be done before any other constraint could be declared deprecated
 # Furthermore some converter needs to be implemented
 
-
-# first commit: generic objects, here the _make methods only
-#               they should be at module top
-# second commit: icons, no command, because the generic obj itself has no command
-# further commits: for each constraint based on the new generic ones, one commit
-
+# NOTE: to Bernd, these doc below is kind of outdated, please clean
 
 # it would be good to be able to add such a generic obj too and decide
 # at runtime about the attributes, TODO for later
-
-
-# no matter how the generic constraint is implemented.
-# each constraint should have
-# - its command name and class in command module, thus its icon
-# - its make method here
-
 # but may be this all makes sense only for constraints implemented on run time
 # by external macros and workbenches
-
 # for internal FEM constraints hard coded FreeCAD attributes and property editor
 # seams more robust to me
 
@@ -83,6 +76,7 @@ _DefaultConstraintAcceleration = {
     "Unit": "m/s^2",
     "Value": [0, 0, -9.8]
 }
+
 _DefaultConstraintInitialPressure = {
     "Name": "Pressure",
     "Symbol": u"p",
@@ -91,6 +85,8 @@ _DefaultConstraintInitialPressure = {
     "Unit": "MPa",
     "Value": "0.1"
 }
+
+# This data structure below is needed to deprecate ConstraintInitialTemperature
 """
 _DefaultInitialTemperature = {
     "Name": "Temperature",
@@ -99,5 +95,17 @@ _DefaultInitialTemperature = {
     "NumberOfComponents": 1,
     "Unit": "K",
     "Value": 300
+}
+"""
+
+# This data structure below is needed to deprecate ConstraintInitialVelocity
+"""
+_DefaultInitialVelocity = {
+    "Name": "Velocity",
+    "Symbol": u"v",
+    "ValueType": "Quantity",
+    "NumberOfComponents": 3,
+    "Unit": "m/s",
+    "Value": [0, 0, 0]
 }
 """
