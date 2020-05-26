@@ -40,20 +40,20 @@ import FreeCAD
 
 
 # ********* generic constraints creation methods *************************************************
-def _makeConstraintBodySource(
+def _makeConstraintSource(
     doc,
-    bodySource,
+    sourceSettings,
     name="Source"
 ):
-    """makeConstraintBodySource(document, body source dict, [name]):
+    """makeConstraintSource(document, source_settings_dict, [name]):
     creates an body source such as heat source, gravity"""
-    if not (name) and bodySource and "Name" in bodySource:
-        name = "BodySource" + bodySource["Name"]
+    if not (name) and sourceSettings and "Name" in sourceSettings:
+        name = "Source" + sourceSettings["Name"]
     # App::DocumentObject can not add dynamic property
     obj = doc.addObject("Fem::ConstraintPython", name)
     from femobjects import constraint_generic
     constraint_generic.ConstraintGeneric(obj)
-    obj.Settings = bodySource
+    obj.Settings = sourceSettings
     obj.Category = "Source"
     if FreeCAD.GuiUp:
         from femviewprovider import view_constraint_generic
@@ -66,7 +66,7 @@ def _makeConstraintInitialValue(
     initialValue,
     name="InitialValue"
 ):
-    """makeConstraintInitialValue(document, initialvalue dict, [name]):
+    """makeConstraintInitialValue(document, initialvalue_settings_dict, [name]):
     creates an initial value object to define such as initial temperature"""
     if not (name) and initialValue and "Name" in initialValue:
         name = initialValue["Name"] + "InitialValue"
@@ -98,7 +98,7 @@ def makeConstraintAcceleration(
     name="ConstraintAcceleration"
 ):
     from femobjects.ConstraintGenericDefaults import _DefaultConstraintAcceleration
-    return _makeConstraintBodySource(doc, _DefaultConstraintAcceleration, name)
+    return _makeConstraintSource(doc, _DefaultConstraintAcceleration, name)
 
 
 def makeConstraintBearing(
